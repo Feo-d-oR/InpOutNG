@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "hwinterfacedrv.h"
+#include <Public.h>
 
 typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
 typedef BOOL (WINAPI *LPFN_WOW64DISABLE) (PVOID*);
@@ -45,34 +45,6 @@ BOOL RevertWOW64(PVOID* oldValue)
 
 int SystemVersion()
 {   
-	OSVERSIONINFOEX osvi;
-	BOOL bOsVersionInfoEx;
+	return VER_PLATFORM_WIN32_NT;		//WINNT;
 
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFOEX));
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-
-	if( !(bOsVersionInfoEx = GetVersionEx ((OSVERSIONINFO *) &osvi)) )
-	{
-		osvi.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
-
-		if (! GetVersionEx ( (OSVERSIONINFO *) &osvi) )
-			return 0;  
-	}
-
-	switch (osvi.dwPlatformId)
-	{      
-	case VER_PLATFORM_WIN32_NT:
-
-		return 2;		//WINNT
-
-		break;
-
-	case VER_PLATFORM_WIN32_WINDOWS:
-
-		return 1;		//WIN9X
-
-		break;
-
-	}   
-	return 0; 
 }

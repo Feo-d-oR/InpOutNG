@@ -12,12 +12,16 @@
 \***********************************************************************/
 
 #include "stdafx.h"
-#include <conio.h>
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "hwinterfacedrv.h"
+#include <Public.h>
 #include "resource.h"
+
+BOOL	_stdcall IsXP64Bit();
+int		SystemVersion();
+BOOL	DisableWOW64(PVOID* oldValue);
+BOOL	RevertWOW64(PVOID* oldValue);
 
 int inst32();
 int inst64();
@@ -34,7 +38,6 @@ HANDLE hdriver=NULL;
 TCHAR path[MAX_PATH];
 HINSTANCE hmodule;
 SECURITY_ATTRIBUTES sa;
-int sysver;
 
 int Opendriver(BOOL bX64);
 void Closedriver(void);
@@ -49,22 +52,10 @@ BOOL APIENTRY DllMain( HINSTANCE  hModule,
 	switch(ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		{
-			sysver = SystemVersion();
-			if(sysver==2)
-			{
-				Opendriver(bx64);
-			}
-		}
-
+		Opendriver(bx64);
 		break;
 	case DLL_PROCESS_DETACH:
-		{
-			if(sysver==2)
-			{
-				Closedriver();
-			}
-		}
+		Closedriver();
 		break;
 	}
 	return TRUE;
@@ -84,84 +75,56 @@ void Closedriver(void)
 
 void _stdcall Out32(short PortAddress, short data)
 {
-	{
-		switch(sysver)
-		{
-		case 1:
-#ifdef _M_IX86
-			_outp( PortAddress,data);	//Will ONLY compile on i386 architecture
-#endif
-			break;
-		case 2:
-			unsigned int error;
-			DWORD BytesReturned;        
-			BYTE Buffer[3]={NULL};
-			unsigned short* pBuffer;
-			pBuffer = (unsigned short *)&Buffer[0];
-			*pBuffer = LOWORD(PortAddress);
-			Buffer[2] = LOBYTE(data);
+	unsigned int error;
+	DWORD BytesReturned;        
+	BYTE Buffer[3]={NULL};
+	unsigned short* pBuffer;
+	pBuffer = (unsigned short *)&Buffer[0];
+	*pBuffer = LOWORD(PortAddress);
+	Buffer[2] = LOBYTE(data);
 
-			error = DeviceIoControl(hdriver,
-				IOCTL_WRITE_PORT_UCHAR,
-				&Buffer,
-				3,
-				NULL,
-				0,
-				&BytesReturned,
-				NULL);
-			break;
-		}
-	}
+	error = DeviceIoControl(hdriver,
+		IOCTL_WRITE_PORT_UCHAR,
+		&Buffer,
+		3,
+		NULL,
+		0,
+		&BytesReturned,
+		NULL);
 }
 
 /*********************************************************************/
 
 short _stdcall Inp32(short PortAddress)
 {
+	unsigned int error;
+	DWORD BytesReturned;
+	unsigned char Buffer[3]={NULL};
+	unsigned short * pBuffer;
+	pBuffer = (unsigned short *)&Buffer;
+	*pBuffer = LOWORD(PortAddress);
+	Buffer[2] = 0;
+	error = DeviceIoControl(hdriver,
+		IOCTL_READ_PORT_UCHAR,
+		&Buffer,
+		2,
+		&Buffer,
+		1,
+		&BytesReturned,
+		NULL);
+
+	if (error==0)
 	{
-		BYTE retval(0);
-		switch(sysver)
-		{
-		case 1:
-#ifdef _M_IX86
-			retval = _inp(PortAddress);
-#endif
-			return retval;
-			break;
-		case 2:
-			unsigned int error;
-			DWORD BytesReturned;
-			unsigned char Buffer[3]={NULL};
-			unsigned short * pBuffer;
-			pBuffer = (unsigned short *)&Buffer;
-			*pBuffer = LOWORD(PortAddress);
-			Buffer[2] = 0;
-			error = DeviceIoControl(hdriver,
-				IOCTL_READ_PORT_UCHAR,
-				&Buffer,
-				2,
-				&Buffer,
-				1,
-				&BytesReturned,
-				NULL);
-
-			if (error==0)
-			{
-				DWORD dwError = GetLastError();
-				TCHAR tszError[255];
-				_stprintf_s(tszError, 255, _T("Error %d\n"), dwError);
-				OutputDebugString(tszError);
-			}
-
-			//Do this to ensure only the first byte is returned, we dont really want to return a short as were only reading a byte.
-			//but we also dont want to change the InpOut interface!
-			UCHAR ucRes = (UCHAR)Buffer[0];
-			return ucRes;
-
-			break;
-		}
+		DWORD dwError = GetLastError();
+		TCHAR tszError[255];
+		_stprintf_s(tszError, 255, _T("Error %d\n"), dwError);
+		OutputDebugString(tszError);
 	}
-	return 0;
+
+	//Do this to ensure only the first byte is returned, we dont really want to return a short as were only reading a byte.
+	//but we also dont want to change the InpOut interface!
+	UCHAR ucRes = (UCHAR)Buffer[0];
+	return ucRes;
 }
 
 /*********************************************************************/
@@ -438,89 +401,53 @@ int start(LPCTSTR pszDriver)
 
 BOOL _stdcall IsInpOutDriverOpen()
 {
-	sysver = SystemVersion();
-	if (sysver==2)
-	{
-		if (hdriver!=INVALID_HANDLE_VALUE && hdriver != NULL)
-			return TRUE;
-	}
-	else if (sysver==1)
-	{
-		return TRUE;
-	}
-	return FALSE;
+	return (hdriver != INVALID_HANDLE_VALUE && hdriver != NULL) ? TRUE : FALSE;
 }
 
 UCHAR _stdcall DlPortReadPortUchar (USHORT port)
 {
 	UCHAR retval(0);
-	switch(sysver)
-	{
-	case 1:
-#ifdef _M_IX86
-		retval = _inp((USHORT)port);
-#endif
-		return retval;
-		break;
-	case 2:
-		unsigned int error;
-		DWORD BytesReturned;
-		BYTE Buffer[3]={NULL};
-		unsigned short * pBuffer;
-		pBuffer = (unsigned short *)&Buffer;
-		*pBuffer = port;
-		Buffer[2] = 0;
-		error = DeviceIoControl(hdriver,
-			IOCTL_READ_PORT_UCHAR,
-			&Buffer,
-			sizeof(Buffer),
-			&Buffer,
-			sizeof(Buffer),
-			&BytesReturned,
-			NULL);
+	unsigned int error;
+	DWORD BytesReturned;
+	BYTE Buffer[3]={NULL};
+	unsigned short * pBuffer;
+	pBuffer = (unsigned short *)&Buffer;
+	*pBuffer = port;
+	Buffer[2] = 0;
+	error = DeviceIoControl(hdriver,
+		IOCTL_READ_PORT_UCHAR,
+		&Buffer,
+		sizeof(Buffer),
+		&Buffer,
+		sizeof(Buffer),
+		&BytesReturned,
+		NULL);
 
-		return((UCHAR)Buffer[0]);
-
-		break;
-	}
-	return 0;
+	return((UCHAR)Buffer[0]);
 }
 
 void _stdcall DlPortWritePortUchar (USHORT port, UCHAR Value)
 {
-	switch(sysver)
-	{
-	case 1:
-#ifdef _M_IX86
-		_outp((UINT)port,Value);	//Will ONLY compile on i386 architecture
-#endif
-		break;
-	case 2:
-		unsigned int error;
-		DWORD BytesReturned;        
-		BYTE Buffer[3]={NULL};
-		unsigned short * pBuffer;
-		pBuffer = (unsigned short *)&Buffer[0];
-		*pBuffer = port;
-		Buffer[2] = Value;
+	unsigned int error;
+	DWORD BytesReturned;        
+	BYTE Buffer[3]={NULL};
+	unsigned short * pBuffer;
+	pBuffer = (unsigned short *)&Buffer[0];
+	*pBuffer = port;
+	Buffer[2] = Value;
 
-		error = DeviceIoControl(hdriver,
-			IOCTL_WRITE_PORT_UCHAR,
-			&Buffer,
-			sizeof(Buffer),
-			NULL,
-			0,
-			&BytesReturned,
-			NULL);
-		break;
-	}
+	error = DeviceIoControl(hdriver,
+		IOCTL_WRITE_PORT_UCHAR,
+		&Buffer,
+		sizeof(Buffer),
+		NULL,
+		0,
+		&BytesReturned,
+		NULL);
 }
 
 USHORT _stdcall DlPortReadPortUshort (USHORT port)
 {
-	if (sysver!=2)
-		return 0;
-
 	ULONG retval(0);
 	unsigned int error;
 	DWORD BytesReturned;
@@ -538,9 +465,6 @@ USHORT _stdcall DlPortReadPortUshort (USHORT port)
 
 void _stdcall DlPortWritePortUshort (USHORT port, USHORT Value)
 {
-	if (sysver!=2)
-		return;
-
 	unsigned int error;
 	DWORD BytesReturned;        
 	BYTE Buffer[5]={NULL};
@@ -561,9 +485,6 @@ void _stdcall DlPortWritePortUshort (USHORT port, USHORT Value)
 
 ULONG _stdcall DlPortReadPortUlong(ULONG port)
 {
-	if (sysver!=2)
-		return 0;
-
 	ULONG retval(0);
 	unsigned int error;
 	DWORD BytesReturned;
@@ -586,9 +507,6 @@ ULONG _stdcall DlPortReadPortUlong(ULONG port)
 
 void _stdcall DlPortWritePortUlong (ULONG port, ULONG Value)
 {
-	if (sysver!=2)
-		return;
-
 	unsigned int error;
 	DWORD BytesReturned;        
 	BYTE Buffer[8] = {NULL};
@@ -615,9 +533,6 @@ PBYTE _stdcall MapPhysToLin(PBYTE pbPhysAddr, DWORD dwPhysSize, HANDLE *pPhysica
 	tagPhys32Struct Phys32Struct;
 	DWORD dwBytesReturned;
 
-	if (sysver!=2)
-		return false;
-
 	Phys32Struct.dwPhysMemSizeInBytes = dwPhysSize;
 	Phys32Struct.pvPhysAddress = pbPhysAddr;
 
@@ -643,9 +558,6 @@ BOOL _stdcall UnmapPhysicalMemory(HANDLE PhysicalMemoryHandle, PBYTE pbLinAddr)
 	tagPhys32Struct Phys32Struct;
 	DWORD dwBytesReturned;
 
-	if (sysver!=2)
-		return false;
-
 	Phys32Struct.PhysicalMemoryHandle = PhysicalMemoryHandle;
 	Phys32Struct.pvPhysMemLin = pbLinAddr;
 
@@ -661,9 +573,6 @@ BOOL _stdcall GetPhysLong(PBYTE pbPhysAddr, PDWORD pdwPhysVal)
 	PDWORD pdwLinAddr;
 	HANDLE PhysicalMemoryHandle;
 
-	if (sysver!=2)
-		return false;
-
 	pdwLinAddr = (PDWORD)MapPhysToLin(pbPhysAddr, 4, &PhysicalMemoryHandle);
 	if (pdwLinAddr == NULL)
 		return false;
@@ -678,8 +587,6 @@ BOOL _stdcall SetPhysLong(PBYTE pbPhysAddr, DWORD dwPhysVal)
 {
 	PDWORD pdwLinAddr;
 	HANDLE PhysicalMemoryHandle;
-	if (sysver!=2)
-		return false;
 
 	pdwLinAddr = (PDWORD)MapPhysToLin(pbPhysAddr, 4, &PhysicalMemoryHandle);
 	if (pdwLinAddr == NULL)
