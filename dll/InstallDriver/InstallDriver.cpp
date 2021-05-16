@@ -4,6 +4,7 @@
 #include "stdafx.h"
 #include "InstallDriver.h"
 #include "..\inpout32.h"
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -14,6 +15,10 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
                      LPTSTR    lpCmdLine,
                      int       nCmdShow)
 {
+	UNREFERENCED_PARAMETER(hInstance);
+	UNREFERENCED_PARAMETER(hPrevInstance);
+	UNREFERENCED_PARAMETER(lpCmdLine);
+	UNREFERENCED_PARAMETER(nCmdShow);
 	int nRetCode = 0;
 	BOOL bResult = IsInpOutDriverOpen();
 

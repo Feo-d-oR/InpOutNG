@@ -53,8 +53,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,4,0,0
- PRODUCTVERSION 1,4,0,0
+ FILEVERSION 2,0,0,0
+ PRODUCTVERSION 2,0,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -69,14 +69,17 @@ BEGIN
     BEGIN
         BLOCK "080904b0"
         BEGIN
-            VALUE "CompanyName", "Highresolution Enterprises"
-            VALUE "FileDescription", "InstallDriver Windows Vista/7 support application"
-            VALUE "FileVersion", "1, 4, 0, 0"
+            VALUE "Comments", "Drivers are self-signed in this version. Beware."
+            VALUE "CompanyName", "Gvozdev A. Feodor"
+            VALUE "FileDescription", "inpoutng/64"
+            VALUE "FileVersion", "2, 0, 0, 0"
             VALUE "InternalName", "InstallDriver"
-            VALUE "LegalCopyright", "Copyright (C) 2007-2011 Highresolution Enterprises"
+            VALUE "LegalCopyright", "Freeware"
+            VALUE "LegalTrademarks", "Copyright © 2021 Gvozdev A. Feodor, Portions Copyright Highresolution Enterprises, Logix4U"
             VALUE "OriginalFilename", "InstallDriver.exe"
             VALUE "ProductName", "InstallDriver Application"
-            VALUE "ProductVersion", "1, 4, 0, 0"
+            VALUE "ProductVersion", "2, 0, 0, 0"
+            //VALUE "SpecialBuild", "x64 Compatible build\r\nIncludes basic DLPortIO Compatibility\r\nIncludes signed drivers (Thanks to Red Fox UK) for Vista x64 compatiblity.\r\n"
         END
     END
     BLOCK "VarFileInfo"

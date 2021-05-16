@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include <Public.h>
+#include <public.h>
 
 typedef BOOL (WINAPI *LPFN_ISWOW64PROCESS) (HANDLE, PBOOL);
 typedef BOOL (WINAPI *LPFN_WOW64DISABLE) (PVOID*);
@@ -14,7 +14,7 @@ BOOL _stdcall IsXP64Bit()
 {
 #ifdef _M_X64
 	return TRUE;	//Urrr if its a x64 build of the DLL, we MUST be running on X64 nativly!
-#endif
+#else
 
     BOOL bIsWow64 = FALSE;
      if (NULL != fnIsWow64Process)
@@ -25,26 +25,25 @@ BOOL _stdcall IsXP64Bit()
         }
     }
     return bIsWow64;
+#endif
 }
 
 BOOL DisableWOW64(PVOID* oldValue)
 {
 #ifdef _M_X64
+    UNREFERENCED_PARAMETER(oldValue);
 	return TRUE;		// If were 64b under x64, we dont wanna do anything!
-#endif
+#else
 	return fnWow64Disable(oldValue);
+#endif
 }
 
 BOOL RevertWOW64(PVOID* oldValue)
 {
 #ifdef _M_X64
+    UNREFERENCED_PARAMETER(oldValue);
 	return TRUE;		// If were 64b under x64, we dont wanna do anything!
-#endif
+#else
 	return fnWow64Revert (oldValue);
-}
-
-int SystemVersion()
-{   
-	return VER_PLATFORM_WIN32_NT;		//WINNT;
-
+#endif
 }

@@ -19,8 +19,8 @@ lpIsXP64Bit gfpIsXP64Bit;
 void Beep(unsigned int freq)
 {
 	gfpOut32(0x43, 0xB6);
-	gfpOut32(0x42, (freq & 0xFF));
-	gfpOut32(0x42, (freq >> 9));
+	gfpOut32(0x42, (USHORT)(freq & 0xFF));
+	gfpOut32(0x42, (USHORT)(freq >> 9));
 	Sleep(10);
 	gfpOut32(0x61, gfpInp32(0x61) | 0x03);
 }
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 
 				if(!strcmp(argv[1],"read"))
 				{
-					short iPort = atoi(argv[2]);
+					short iPort = (SHORT)atoi(argv[2]);
 					WORD wData = gfpInp32(iPort);	//Read the port
 					printf("Data read from address %s is %d \n\n\n\n", argv[2], wData);
 				}
@@ -76,8 +76,8 @@ int main(int argc, char* argv[])
 					}
 					else
 					{
-						short iPort = atoi(argv[2]);
-						WORD wData = atoi(argv[3]);
+						short iPort = (SHORT)atoi(argv[2]);
+						WORD wData = (WORD)atoi(argv[3]);
 						gfpOut32(iPort, wData);
 						printf("data written to %s\n\n\n", argv[2]);
 					}

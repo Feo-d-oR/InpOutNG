@@ -15,11 +15,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include <Public.h>
+#include <winioctl.h>
+#include <public.h>
 #include "resource.h"
 
 BOOL	_stdcall IsXP64Bit();
-int		SystemVersion();
 BOOL	DisableWOW64(PVOID* oldValue);
 BOOL	RevertWOW64(PVOID* oldValue);
 
@@ -28,8 +28,11 @@ int inst64();
 int start(LPCTSTR pszDriver);
 
 //First, lets set the DRIVERNAME depending on our configuraiton.
-#define DRIVERNAMEx64 _T("inpoutx64\0")
-#define DRIVERNAMEi386 _T("inpout32\0")
+//!!#define DRIVERNAMEx64 _T("inpoutng64\0")
+#define DRIVERNAMEx64 _T("inpoutng\0")
+#define DRIVERNAMEi386 _T("inpoutng\0")
+
+#define ARRAY_SIZE(x) ( sizeof(x) / sizeof(x[0]) )
 
 char str[10];
 int vv;
@@ -47,6 +50,7 @@ BOOL APIENTRY DllMain( HINSTANCE  hModule,
 					  LPVOID lpReserved
 					  )
 {
+	UNREFERENCED_PARAMETER(lpReserved);
 	hmodule = hModule;
 	BOOL bx64 = IsXP64Bit();
 	switch(ul_reason_for_call)
@@ -75,49 +79,53 @@ void Closedriver(void)
 
 void _stdcall Out32(short PortAddress, short data)
 {
-	unsigned int error;
-	DWORD BytesReturned;        
-	BYTE Buffer[3]={NULL};
-	unsigned short* pBuffer;
-	pBuffer = (unsigned short *)&Buffer[0];
+	UINT	error;
+	DWORD	BytesReturned;
+	BYTE	Buffer[3] = {NULL};
+	DWORD	szBuffer  = ARRAY_SIZE(Buffer);
+	PUSHORT pBuffer;
+
+	pBuffer = (PUSHORT)&Buffer[0];
 	*pBuffer = LOWORD(PortAddress);
 	Buffer[2] = LOBYTE(data);
 
 	error = DeviceIoControl(hdriver,
-		IOCTL_WRITE_PORT_UCHAR,
+		DWORD(IOCTL_WRITE_PORT_UCHAR),
 		&Buffer,
-		3,
+		szBuffer,
 		NULL,
-		0,
+		(DWORD)0U,
 		&BytesReturned,
-		NULL);
+		nullptr);
 }
 
 /*********************************************************************/
 
 short _stdcall Inp32(short PortAddress)
 {
-	unsigned int error;
+	UINT error;
 	DWORD BytesReturned;
-	unsigned char Buffer[3]={NULL};
-	unsigned short * pBuffer;
-	pBuffer = (unsigned short *)&Buffer;
+	UCHAR Buffer[3]={NULL};
+	PUSHORT pBuffer;
+	pBuffer = (PUSHORT)&Buffer[0];
+
 	*pBuffer = LOWORD(PortAddress);
 	Buffer[2] = 0;
+
 	error = DeviceIoControl(hdriver,
-		IOCTL_READ_PORT_UCHAR,
+		DWORD(IOCTL_READ_PORT_UCHAR),
 		&Buffer,
-		2,
+		sizeof(USHORT),
 		&Buffer,
-		1,
+		sizeof(UCHAR),
 		&BytesReturned,
-		NULL);
+		nullptr);
 
 	if (error==0)
 	{
 		DWORD dwError = GetLastError();
 		TCHAR tszError[255];
-		_stprintf_s(tszError, 255, _T("Error %d\n"), dwError);
+		_stprintf_s(tszError, 255, _T("Error %u\n"), dwError);
 		OutputDebugString(tszError);
 	}
 
@@ -131,9 +139,9 @@ short _stdcall Inp32(short PortAddress)
 
 int Opendriver(BOOL bX64)
 {
-	OutputDebugString(_T("Attempting to open InpOut driver...\n"));
+	OutputDebugString(_T("Whoopeee... Attempting to open InpOut driver...\n"));
 	TCHAR szFileName[MAX_PATH] = {NULL};
-	_stprintf_s(szFileName, MAX_PATH, _T("\\\\.\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEi386);
+	_stprintf_s(szFileName, MAX_PATH, _T("\\\\.\\GLOBALROOT\\Device\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEi386);// ("\\\\.\\Device\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEi386);
 
 	hdriver = CreateFile(szFileName, 
 		GENERIC_READ | GENERIC_WRITE, 
@@ -147,11 +155,12 @@ int Opendriver(BOOL bX64)
 	{
 		if(start(bX64 ? DRIVERNAMEx64 : DRIVERNAMEi386))
 		{
+			/*
 			if (bX64)
 				inst64();	//Install the x64 driver
 			else
 				inst32();	//Install the i386 driver
-
+				*/
 			int nResult = start(bX64 ? DRIVERNAMEx64 : DRIVERNAMEi386);
 
 			if (nResult == ERROR_SUCCESS)
@@ -183,6 +192,7 @@ int Opendriver(BOOL bX64)
 		}
 		return 1;
 	}
+
 	OutputDebugString(_T("Successfully opened "));
 	OutputDebugString(bX64 ? DRIVERNAMEx64 : DRIVERNAMEi386);
 	OutputDebugString(_T(" driver\n"));
@@ -193,11 +203,15 @@ int Opendriver(BOOL bX64)
 int inst32()
 {
 	TCHAR szDriverSys[MAX_PATH];
+
+	int errCode = ERROR_SUCCESS;
+
+	SC_HANDLE Mgr = NULL;
+	SC_HANDLE Ser = NULL;
+
 	_tcscpy_s(szDriverSys, MAX_PATH, DRIVERNAMEi386);
 	_tcscat_s(szDriverSys, MAX_PATH, _T(".sys\0"));
-	
-	SC_HANDLE  Mgr;
-	SC_HANDLE  Ser;
+
 	GetSystemDirectory(path, MAX_PATH);
 	HRSRC hResource = FindResource(hmodule, MAKEINTRESOURCE(IDR_INPOUT32), _T("bin"));
 	if(hResource)
@@ -241,9 +255,9 @@ int inst32()
 	Mgr = OpenSCManager (NULL, NULL,SC_MANAGER_ALL_ACCESS);
 	if (Mgr == NULL)
 	{							//No permission to create service
-		if (GetLastError() == ERROR_ACCESS_DENIED) 
+		if ( (errCode=GetLastError()) == ERROR_ACCESS_DENIED ) 
 		{
-			return 5;  // error access denied
+			return errCode;  // error access denied
 		}
 	}	
 	else
@@ -274,13 +288,16 @@ int inst32()
 int inst64()
 {
 	TCHAR szDriverSys[MAX_PATH];
+	
+	SC_HANDLE  Mgr = NULL;
+	SC_HANDLE  Ser = NULL;
+
 	_tcscpy_s(szDriverSys, MAX_PATH, DRIVERNAMEx64);
 	_tcscat_s(szDriverSys, MAX_PATH, _T(".sys\0"));
-	
-	SC_HANDLE  Mgr;
-	SC_HANDLE  Ser;
+
 	GetSystemDirectory(path, MAX_PATH);
 	HRSRC hResource = FindResource(hmodule, MAKEINTRESOURCE(IDR_INPOUTX64), _T("bin"));
+
 	if(hResource)
 	{
 		HGLOBAL binGlob = LoadResource(hmodule, hResource);
@@ -374,7 +391,7 @@ int start(LPCTSTR pszDriver)
 				if(!StartService(Ser,0,NULL))
 				{
 					CloseServiceHandle (Ser);
-					return 4; // we could open the service but unable to start
+					return ERROR_SERVICE_NOT_ACTIVE; // we could open the service but unable to start
 				}
 			}
 		}
@@ -387,12 +404,12 @@ int start(LPCTSTR pszDriver)
 			if(!StartService(Ser,0,NULL))
 			{
 				CloseServiceHandle (Ser);
-				return 3; // opened the Service handle with full access permission, but unable to start
+				return ERROR_SERVICE_START_HANG; // opened the Service handle with full access permission, but unable to start
 			}
 			else
 			{
 				CloseServiceHandle (Ser);
-				return 0;
+				return ERROR_SUCCESS;
 			}
 		}
 	}
@@ -406,123 +423,119 @@ BOOL _stdcall IsInpOutDriverOpen()
 
 UCHAR _stdcall DlPortReadPortUchar (USHORT port)
 {
-	UCHAR retval(0);
-	unsigned int error;
+	UINT error;
 	DWORD BytesReturned;
 	BYTE Buffer[3]={NULL};
-	unsigned short * pBuffer;
-	pBuffer = (unsigned short *)&Buffer;
+	PUSHORT pBuffer;
+	pBuffer = (PUSHORT)&Buffer[0];
 	*pBuffer = port;
 	Buffer[2] = 0;
 	error = DeviceIoControl(hdriver,
-		IOCTL_READ_PORT_UCHAR,
+		DWORD(IOCTL_READ_PORT_UCHAR),
 		&Buffer,
 		sizeof(Buffer),
 		&Buffer,
 		sizeof(Buffer),
 		&BytesReturned,
-		NULL);
+		nullptr);
 
 	return((UCHAR)Buffer[0]);
 }
 
 void _stdcall DlPortWritePortUchar (USHORT port, UCHAR Value)
 {
-	unsigned int error;
+	UINT error;
 	DWORD BytesReturned;        
 	BYTE Buffer[3]={NULL};
-	unsigned short * pBuffer;
-	pBuffer = (unsigned short *)&Buffer[0];
+	PUSHORT pBuffer;
+	pBuffer = (PUSHORT)&Buffer[0];
 	*pBuffer = port;
 	Buffer[2] = Value;
 
 	error = DeviceIoControl(hdriver,
-		IOCTL_WRITE_PORT_UCHAR,
+		DWORD(IOCTL_WRITE_PORT_UCHAR),
 		&Buffer,
 		sizeof(Buffer),
-		NULL,
+		nullptr,
 		0,
 		&BytesReturned,
-		NULL);
+		nullptr);
 }
 
 USHORT _stdcall DlPortReadPortUshort (USHORT port)
 {
-	ULONG retval(0);
-	unsigned int error;
+	UINT error;
 	DWORD BytesReturned;
-	unsigned short sPort=port;
+	USHORT sPort=port;
 	error = DeviceIoControl(hdriver,
-		IOCTL_READ_PORT_USHORT,
+		DWORD(IOCTL_READ_PORT_USHORT),
 		&sPort,
 		sizeof(unsigned short),
 		&sPort,
 		sizeof(unsigned short),
 		&BytesReturned,
-		NULL);
+		nullptr);
 	return(sPort);
 }
 
 void _stdcall DlPortWritePortUshort (USHORT port, USHORT Value)
 {
-	unsigned int error;
+	UINT error;
 	DWORD BytesReturned;        
 	BYTE Buffer[5]={NULL};
-	unsigned short * pBuffer;
-	pBuffer = (unsigned short *)&Buffer[0];
+	PUSHORT pBuffer;
+	pBuffer = (PUSHORT)&Buffer[0];
 	*pBuffer = LOWORD(port);
 	*(pBuffer+1) = Value;
 
 	error = DeviceIoControl(hdriver,
-		IOCTL_WRITE_PORT_USHORT,
+		DWORD(IOCTL_WRITE_PORT_USHORT),
 		&Buffer,
 		sizeof(Buffer),
-		NULL,
+		nullptr,
 		0,
 		&BytesReturned,
-		NULL);
+		nullptr);
 }
 
 ULONG _stdcall DlPortReadPortUlong(ULONG port)
 {
-	ULONG retval(0);
-	unsigned int error;
+	UINT error;
 	DWORD BytesReturned;
-	unsigned long lPort=port;
+	ULONG lPort=port;
 
     PULONG  ulBuffer;
     ulBuffer = (PULONG)&lPort;
-	ULONG test = ulBuffer[0];
 
 	error = DeviceIoControl(hdriver,
-		IOCTL_READ_PORT_ULONG,
+		DWORD(IOCTL_READ_PORT_ULONG),
 		&lPort,
 		sizeof(unsigned long),
 		&lPort,
 		sizeof(unsigned long),
 		&BytesReturned,
-		NULL);
+		nullptr);
 	return(lPort);
 }
 
 void _stdcall DlPortWritePortUlong (ULONG port, ULONG Value)
 {
-	unsigned int error;
+	UINT error;
 	DWORD BytesReturned;        
 	BYTE Buffer[8] = {NULL};
-	unsigned long* pBuffer;
-	pBuffer = (unsigned long*)&Buffer[0];
+	PULONG pBuffer;
+	pBuffer = (PULONG)&Buffer[0];
 	*pBuffer = port;
 	*(pBuffer+1) = Value;
 
 	error = DeviceIoControl(hdriver,
-		IOCTL_WRITE_PORT_ULONG,
+		DWORD(IOCTL_WRITE_PORT_ULONG),
 		&Buffer,
 		sizeof(Buffer),
-		NULL,
-		0,
+		nullptr,
+		0U,
 		&BytesReturned,
-		NULL);
+		nullptr);
 }
 
 
@@ -536,10 +549,10 @@ PBYTE _stdcall MapPhysToLin(PBYTE pbPhysAddr, DWORD dwPhysSize, HANDLE *pPhysica
 	Phys32Struct.dwPhysMemSizeInBytes = dwPhysSize;
 	Phys32Struct.pvPhysAddress = pbPhysAddr;
 
-	if (!DeviceIoControl(hdriver, IOCTL_WINIO_MAPPHYSTOLIN, &Phys32Struct,
+	if (!DeviceIoControl(hdriver, DWORD(IOCTL_WINIO_MAPPHYSTOLIN), &Phys32Struct,
 		sizeof(tagPhys32Struct), &Phys32Struct, sizeof(tagPhys32Struct),
-		&dwBytesReturned, NULL))
-		return NULL;
+		&dwBytesReturned, nullptr))
+		return nullptr;
 	else
 	{
 #ifdef _M_X64
@@ -561,8 +574,8 @@ BOOL _stdcall UnmapPhysicalMemory(HANDLE PhysicalMemoryHandle, PBYTE pbLinAddr)
 	Phys32Struct.PhysicalMemoryHandle = PhysicalMemoryHandle;
 	Phys32Struct.pvPhysMemLin = pbLinAddr;
 
-	if (!DeviceIoControl(hdriver, IOCTL_WINIO_UNMAPPHYSADDR, &Phys32Struct,
-		sizeof(tagPhys32Struct), NULL, 0, &dwBytesReturned, NULL))
+	if (!DeviceIoControl(hdriver, DWORD(IOCTL_WINIO_UNMAPPHYSADDR), &Phys32Struct,
+		sizeof(tagPhys32Struct), nullptr, 0, &dwBytesReturned, nullptr))
 		return false;
 
 	return true;
@@ -574,7 +587,7 @@ BOOL _stdcall GetPhysLong(PBYTE pbPhysAddr, PDWORD pdwPhysVal)
 	HANDLE PhysicalMemoryHandle;
 
 	pdwLinAddr = (PDWORD)MapPhysToLin(pbPhysAddr, 4, &PhysicalMemoryHandle);
-	if (pdwLinAddr == NULL)
+	if (pdwLinAddr == nullptr)
 		return false;
 
 	*pdwPhysVal = *pdwLinAddr;

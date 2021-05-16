@@ -4,8 +4,8 @@
 
 [Version]
 Signature="$WINDOWS NT$"
-Class=Sample ; TODO: edit Class
-ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171} ; TODO: edit ClassGuid
+Class=System
+ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318}
 Provider=%ManufacturerName%
 CatalogFile=inpoutng.cat
 DriverVer=2.0.0
@@ -17,12 +17,12 @@ inpoutng_Device_CoInstaller_CopyFiles = 11
 
 ; ================= Class section =====================
 
-[ClassInstall32]
-Addreg=SampleClassReg
+; [ClassInstall32]
+; Addreg=SampleClassReg
 
-[SampleClassReg]
-HKR,,,0,%ClassName%
-HKR,,Icon,,-5
+; [SampleClassReg]
+; HKR,,,0,%ClassName%
+; HKR,,Icon,,-5
 
 [SourceDisksNames]
 1 = %DiskName%,,,""
@@ -39,7 +39,10 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with
 %ManufacturerName%=Standard,NT$ARCH$
 
 [Standard.NT$ARCH$]
-%inpoutng.DeviceDesc%=inpoutng_Device, Root\inpoutng ; TODO: edit hw-id
+;%inpoutng.DeviceDesc%=inpoutng_Device, ROOT\inpoutng
+%inpoutng.DeviceDesc%=inpoutng_Device, ACPI\inpoutng
+;%inpoutng.DeviceDesc%=inpoutng_Device, DOSDEVICES\inpoutng
+;%inpoutng.DeviceDesc%=inpoutng_Device, DEVICE\inpoutng
 
 [inpoutng_Device.NT]
 CopyFiles=Drivers_Dir
@@ -80,8 +83,8 @@ KmdfLibraryVersion = $KMDFVERSION$
 
 [Strings]
 SPSVCINST_ASSOCSERVICE= 0x00000002
-ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
-ClassName="Samples" ; TODO: edit ClassName
-DiskName = "inpoutng Installation Disk"
-inpoutng.DeviceDesc = "inpoutng Device"
-inpoutng.SVCDESC = "inpoutng Service"
+ManufacturerName="Gvozdev A. Feodor"
+ClassName="System"
+DiskName = "InpOutNG Installation Disk"
+inpoutng.DeviceDesc = "Чтение/запись портов ISA/PCI InpOutNG"
+inpoutng.SVCDESC = "Служба InpOutNG"
