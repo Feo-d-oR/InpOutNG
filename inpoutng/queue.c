@@ -22,6 +22,31 @@ Environment:
 #pragma alloc_text (PAGE, inpoutngEvtIoDeviceControl)
 #endif
 
+#pragma pack(push)
+#pragma pack(1)
+typedef struct S_InPortData
+{
+    USHORT addr;
+    union U_inPortVal
+    {
+        UCHAR  inChar;
+        USHORT inShrt;
+        ULONG  inLong;
+    } val;
+} inPortData_t, *p_inPortData_t;
+
+typedef struct S_OutPortData
+{
+    union U_outPortVal
+    {
+        UCHAR  outChar;
+        USHORT outShrt;
+        ULONG  outLong;
+    } val;
+} outPortData_t, * p_outPortData_t;
+
+#pragma pack(pop)
+
 NTSTATUS
 inpoutngQueueInitialize(
     _In_ WDFDEVICE Device
@@ -121,27 +146,26 @@ Return Value:
     
     NTSTATUS            status = STATUS_UNSUCCESSFUL;
     size_t              opInfo = 0;
-    size_t              inBuffersize;
-    size_t              outBuffersize;
+    size_t              inBuffersize = 0;
+    size_t              outBuffersize = 0;
 
     struct              tagPhys32Struct Phys32Struct;
 
-    PUCHAR              cData;
-    PUSHORT             sData;
-    PULONG				lData;
-    PUSHORT             address;
+    p_inPortData_t      inData = NULL;
+    p_outPortData_t     outData = NULL;
 
-    PULONG              inBuf;
-    PULONG              outBuf;
+    PULONG              inBuf = NULL;
+    PULONG              outBuf = NULL;
 
     PAGED_CODE();
 
+    /*
     if (!OutputBufferLength || !InputBufferLength)
     {
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
         return;
     }
-
+    */
     //
     // For buffered ioctls WdfRequestRetrieveInputBuffer &
     // WdfRequestRetrieveOutputBuffer return the same buffer
@@ -153,8 +177,10 @@ Return Value:
         status = STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    ASSERT(inBuffersize == InputBufferLength);
-
+    //ASSERT(inBuffersize == InputBufferLength);
+    
+    //ASSERT(inBuf != NULL);
+    
     //
     // Read the input buffer content.
     // We are using the following function to print characters instead
@@ -164,19 +190,23 @@ Return Value:
     //
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data from User : (0x%p) 0x%08x\n", inBuf, *inBuf);
 
-    status = WdfRequestRetrieveOutputBuffer(Request, 0, &outBuf, &outBuffersize);
-    if (!NT_SUCCESS(status)) {
-        status = STATUS_INSUFFICIENT_RESOURCES;
+    if (OutputBufferLength != 0)
+    {
+        status = WdfRequestRetrieveOutputBuffer(Request, 0, &outBuf, &outBuffersize);
+        if (!NT_SUCCESS(status)) {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+        }
     }
 
-    ASSERT(outBuffersize == OutputBufferLength);
-    
+    //ASSERT(outBuffersize == OutputBufferLength);
+    //ASSERT(outBuf != NULL);
+
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data to User : (0x%p)\n", outBuf);
 
-    cData = (PUCHAR)inBuf;
-    sData = (PUSHORT)inBuf;
-    lData = (PULONG)inBuf;
-    address = (PUSHORT)inBuf;
+    
+    
+    inData = (p_inPortData_t)inBuf;
+    outData = (p_outPortData_t)outBuf;
 
     switch (IoControlCode)
     {
@@ -189,12 +219,13 @@ Return Value:
             else
             {
                 UCHAR value;
-                value = READ_PORT_UCHAR((PUCHAR)address[0]);
-                cData[0] = value;
+                value = READ_PORT_UCHAR((PUCHAR)&inData->addr);
+                outData->val.outChar = value;
                 opInfo = sizeof(UCHAR);
                 status = STATUS_SUCCESS;
             }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_UCHAR, Status=0x%x, Info=%d\n", status, (UINT32)opInfo);
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_UCHAR (P=0x%4x, V=0x%2x), Status=0x%x, Info=%d\n",
+                inData->addr, outData->val.outChar, status, (UINT32)opInfo);
             break;
 
         case IOCTL_WRITE_PORT_UCHAR:
@@ -205,11 +236,12 @@ Return Value:
             }
             else
             {
-                WRITE_PORT_UCHAR((PUCHAR)address[0], cData[2]);	//Byte 0,1=Address Byte 2=Value
+                WRITE_PORT_UCHAR((PUCHAR)&inData->addr, inData->val.inChar);	//Byte 0,1=Address Byte 2=Value
                 opInfo = 10;
                 status = STATUS_SUCCESS;
             }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_UCHAR, Status=0x%x, Info=%d\n", status, (UINT32)opInfo);
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_UCHAR (P=0x%4x, V=0x%2x), Status=0x%x, Info=%d\n",
+                inData->addr, inData->val.inChar, status, (UINT32)opInfo);
             break;
 
         case IOCTL_READ_PORT_USHORT:
@@ -221,12 +253,13 @@ Return Value:
             else
             {
                 USHORT value;
-                value = READ_PORT_USHORT((PUSHORT)address[0]);
-                sData[0] = value;
+                value = READ_PORT_USHORT(&inData->addr);
+                outData->val.outShrt = value;
                 opInfo = sizeof(USHORT);
                 status = STATUS_SUCCESS;
             }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_USHORT, Status=0x%x, Info=%d\n", status, (UINT32)opInfo);
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_USHORT (P=0x%4x, V=0x%4x), Status=0x%x, Info=%d\n",
+                inData->addr, outData->val.outShrt, status, (UINT32)opInfo);
             break;
 
         case IOCTL_WRITE_PORT_USHORT:
@@ -237,11 +270,12 @@ Return Value:
             }
             else
             {
-                WRITE_PORT_USHORT((PUSHORT)address[0], sData[1]); //Short 0=Address Short 1=Value
+                WRITE_PORT_USHORT(&inData->addr, inData->val.inShrt); //Short 0=Address Short 1=Value
                 opInfo = 10;
                 status = STATUS_SUCCESS;
             }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_UCHAR, Status=0x%x, Info=%d\n", status, (UINT32)opInfo);
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_UCHAR (P=0x%4x, V=0x%4x), Status=0x%x, Info=%d\n",
+                inData->addr, inData->val.inShrt, status, (UINT32)opInfo);
             break;
 
         case IOCTL_READ_PORT_ULONG:
@@ -253,12 +287,14 @@ Return Value:
             else
             {
                 ULONG value;
-                value = READ_PORT_ULONG((PULONG)address[0]);
-                lData[0] = value;
+                ULONG l_addr = (inData->addr & 0x0000ffff);
+                value = READ_PORT_ULONG((PULONG)&l_addr);
+                outData->val.outLong = value;
                 opInfo = sizeof(ULONG);
                 status = STATUS_SUCCESS;
             }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_ULONG, Status=0x%x, Info=%d\n", status, (UINT32)opInfo);
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_ULONG (P=0x%8x, V=0x%8x), Status=0x%x, Info=%d\n",
+                (inData->addr & 0x0000ffff), outData->val.outLong, status, (UINT32)opInfo);
             break;
 
         case IOCTL_WRITE_PORT_ULONG:
@@ -269,11 +305,13 @@ Return Value:
             }
             else
             {
-                WRITE_PORT_ULONG(&(lData[0]), lData[1]); //Short 0=Address long 1=Value
+                ULONG l_addr = (inData->addr & 0x0000ffff);
+                WRITE_PORT_ULONG(&l_addr, inData->val.inLong); //Short 0=Address long 1=Value
                 opInfo = 10;
                 status = STATUS_SUCCESS;
             }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_ULONG, Status=0x%x, Info=%d\n", status, (UINT32)opInfo);
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_ULONG (P=0x%8x, V=0x%8x), Status=0x%x, Info=%d\n",
+                (inData->addr & 0x0000ffff), inData->val.inLong, status, (UINT32)opInfo);
             break;
 
         case IOCTL_WINIO_MAPPHYSTOLIN:

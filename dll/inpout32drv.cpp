@@ -81,20 +81,21 @@ void _stdcall Out32(short PortAddress, short data)
 {
 	UINT	error;
 	DWORD	BytesReturned;
-	BYTE	Buffer[3] = {NULL};
-	DWORD	szBuffer  = ARRAY_SIZE(Buffer);
+	BYTE	outBuffer[6] = { NULL };
+	BYTE	inBuffer[6] = { NULL };
+	DWORD	szBuffer  = ARRAY_SIZE(outBuffer);
 	PUSHORT pBuffer;
 
-	pBuffer = (PUSHORT)&Buffer[0];
+	pBuffer = (PUSHORT)&outBuffer[0];
 	*pBuffer = LOWORD(PortAddress);
-	Buffer[2] = LOBYTE(data);
+	outBuffer[2] = LOBYTE(data);
 
 	error = DeviceIoControl(hdriver,
 		DWORD(IOCTL_WRITE_PORT_UCHAR),
-		&Buffer,
+		&outBuffer,
 		szBuffer,
-		NULL,
-		(DWORD)0U,
+		&inBuffer,
+		szBuffer,
 		&BytesReturned,
 		nullptr);
 }
@@ -105,18 +106,19 @@ short _stdcall Inp32(short PortAddress)
 {
 	UINT error;
 	DWORD BytesReturned;
-	UCHAR Buffer[3]={NULL};
+	UCHAR outBuffer[6]={NULL};
+	UCHAR inBuffer[6] = { NULL };
 	PUSHORT pBuffer;
-	pBuffer = (PUSHORT)&Buffer[0];
+	pBuffer = (PUSHORT)&outBuffer[0];
 
 	*pBuffer = LOWORD(PortAddress);
-	Buffer[2] = 0;
+	outBuffer[2] = 0;
 
 	error = DeviceIoControl(hdriver,
 		DWORD(IOCTL_READ_PORT_UCHAR),
-		&Buffer,
+		&outBuffer,
 		sizeof(USHORT),
-		&Buffer,
+		&inBuffer,
 		sizeof(UCHAR),
 		&BytesReturned,
 		nullptr);
@@ -131,7 +133,7 @@ short _stdcall Inp32(short PortAddress)
 
 	//Do this to ensure only the first byte is returned, we dont really want to return a short as were only reading a byte.
 	//but we also dont want to change the InpOut interface!
-	UCHAR ucRes = (UCHAR)Buffer[0];
+	UCHAR ucRes = (UCHAR)inBuffer[0];
 	return ucRes;
 }
 
