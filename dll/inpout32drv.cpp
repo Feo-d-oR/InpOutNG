@@ -34,6 +34,30 @@ int start(LPCTSTR pszDriver);
 
 #define ARRAY_SIZE(x) ( sizeof(x) / sizeof(x[0]) )
 
+#pragma pack(push)
+#pragma pack(1)
+typedef struct S_OutPortData
+{
+	USHORT addr;
+	union U_outPortVal
+	{
+		UCHAR  outChar;
+		USHORT outShrt;
+		ULONG  outLong;
+	} val;
+} outPortData_t, * p_outPortData_t;
+
+typedef struct S_InPortData
+{
+	union U_inPortVal
+	{
+		UCHAR  inChar;
+		USHORT inShrt;
+		ULONG  inLong;
+	} val;
+} inPortData_t, * p_inPortData_t;
+#pragma pack()
+
 char str[10];
 int vv;
 
@@ -79,23 +103,19 @@ void Closedriver(void)
 
 void _stdcall Out32(short PortAddress, short data)
 {
+	__declspec(align(8)) outPortData_t outData;
 	UINT	error;
 	DWORD	BytesReturned;
-	BYTE	outBuffer[6] = { NULL };
-	BYTE	inBuffer[6] = { NULL };
-	DWORD	szBuffer  = ARRAY_SIZE(outBuffer);
-	PUSHORT pBuffer;
-
-	pBuffer = (PUSHORT)&outBuffer[0];
-	*pBuffer = LOWORD(PortAddress);
-	outBuffer[2] = LOBYTE(data);
+	memset(&outData, 0x0, sizeof(outPortData_t));
+	outData.addr = USHORT(PortAddress);
+	outData.val.outShrt = USHORT(data);
 
 	error = DeviceIoControl(hdriver,
 		DWORD(IOCTL_WRITE_PORT_UCHAR),
-		&outBuffer,
-		szBuffer,
-		&inBuffer,
-		szBuffer,
+		&outData,
+		sizeof(outData.addr)+sizeof(outData.val.outChar),
+		nullptr,
+		0,
 		&BytesReturned,
 		nullptr);
 }
@@ -104,21 +124,19 @@ void _stdcall Out32(short PortAddress, short data)
 
 short _stdcall Inp32(short PortAddress)
 {
-	UINT error;
-	DWORD BytesReturned;
-	UCHAR outBuffer[6]={NULL};
-	UCHAR inBuffer[6] = { NULL };
-	PUSHORT pBuffer;
-	pBuffer = (PUSHORT)&outBuffer[0];
-
-	*pBuffer = LOWORD(PortAddress);
-	outBuffer[2] = 0;
-
+	__declspec(align(8)) outPortData_t outData;
+	__declspec(align(8)) inPortData_t inData;
+	UINT	error;
+	DWORD	BytesReturned;
+	memset(&outData, 0x0, sizeof(outPortData_t));
+	memset(&inData, 0x0, sizeof(inPortData_t));
+	outData.addr = (USHORT)PortAddress;
+	
 	error = DeviceIoControl(hdriver,
 		DWORD(IOCTL_READ_PORT_UCHAR),
-		&outBuffer,
-		sizeof(USHORT),
-		&inBuffer,
+		&outData,
+		sizeof(outData.addr),
+		&inData,
 		sizeof(UCHAR),
 		&BytesReturned,
 		nullptr);
@@ -133,7 +151,7 @@ short _stdcall Inp32(short PortAddress)
 
 	//Do this to ensure only the first byte is returned, we dont really want to return a short as were only reading a byte.
 	//but we also dont want to change the InpOut interface!
-	UCHAR ucRes = (UCHAR)inBuffer[0];
+	UCHAR ucRes = inData.val.inChar;
 	return ucRes;
 }
 

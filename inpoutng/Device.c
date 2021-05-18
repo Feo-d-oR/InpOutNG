@@ -45,6 +45,7 @@ Return Value:
 {
     WDF_OBJECT_ATTRIBUTES deviceAttributes;
     PDEVICE_CONTEXT deviceContext;
+    PNP_BUS_INFORMATION        busInfo;
     WDFDEVICE device;
     NTSTATUS status;
 
@@ -60,33 +61,15 @@ Return Value:
 #endif
     UNICODE_STRING uniNameString, uniDOSString;
 
-#if 0
-
-
-    status = IoCreateDevice(DriverObject,
-        0,
-        &uniNameString,
-        FILE_DEVICE_UNKNOWN,
-        0,
-        FALSE,
-        &deviceObject);
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    DriverObject->MajorFunction[IRP_MJ_CREATE] = hwinterfaceCreateDispatch;
-    DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = hwinterfaceDeviceControl;
-    DriverObject->DriverUnload = hwinterfaceUnload;
-
-    return STATUS_SUCCESS;
-#endif
-
     PAGED_CODE();
 
     //
     // Initialize WPP Tracing
     //
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE, "%!FUNC! Entry");
+
+    WdfDeviceInitSetDeviceType(DeviceInit, FILE_DEVICE_BUS_EXTENDER);
+    WdfDeviceInitSetExclusive(DeviceInit, TRUE);
 
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&deviceAttributes, DEVICE_CONTEXT);
 
@@ -135,6 +118,18 @@ Return Value:
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate DOS name creation failed %!STATUS!", status);
         }
         */
+
+        //
+        // This value is used in responding to the IRP_MN_QUERY_BUS_INFORMATION
+        // for the child devices. This is an optional information provided to
+        // uniquely idenitfy the bus the device is connected.
+        //
+        busInfo.BusTypeGuid = GUID_DEVCLASS_INPOUTNG;
+        busInfo.LegacyBusType = PNPBus;
+        busInfo.BusNumber = 0;
+
+        WdfDeviceSetBusInformationForChildren(device, &busInfo);
+
         status = WdfDeviceCreateSymbolicLink(device, &uniNameString);
         if (!NT_SUCCESS(status)) {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate NT name creation failed %!STATUS!", status);

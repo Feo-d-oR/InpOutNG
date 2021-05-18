@@ -41,6 +41,7 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with
 [Standard.NT$ARCH$]
 ;%inpoutng.DeviceDesc%=inpoutng_Device, ROOT\inpoutng
 %inpoutng.DeviceDesc%=inpoutng_Device, ACPI\inpoutng
+%inpoutng.DeviceDesc%=inpoutng_Device, ISAPNP\inpoutng
 ;%inpoutng.DeviceDesc%=inpoutng_Device, DOSDEVICES\inpoutng
 ;%inpoutng.DeviceDesc%=inpoutng_Device, DEVICE\inpoutng
 
