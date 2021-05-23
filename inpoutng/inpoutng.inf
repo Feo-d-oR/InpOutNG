@@ -3,13 +3,13 @@
 ;
 
 [Version]
-Signature="$WINDOWS NT$"
-Class=System
-ClassGuid={4d36e97d-e325-11ce-bfc1-08002be10318}
-Provider=%ManufacturerName%
-CatalogFile=inpoutng.cat
-DriverVer=2.0.0
-PnpLockdown=1
+Signature = "$WINDOWS NT$"
+Class = System
+ClassGuid = {4d36e97d-e325-11ce-bfc1-08002be10318}
+Provider = %ManufacturerName%
+CatalogFile = inpoutng.cat
+DriverVer = 2.0.0
+PnpLockdown = 1
 
 [DestinationDirs]
 DefaultDestDir = 12
@@ -29,21 +29,17 @@ inpoutng_Device_CoInstaller_CopyFiles = 11
 
 [SourceDisksFiles]
 inpoutng.sys  = 1,,
-WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll = 1 ; make sure the number matches with SourceDisksNames
 
 ;*****************************************
 ; Install Section
 ;*****************************************
 
 [Manufacturer]
-%ManufacturerName%=Standard,NT$ARCH$
+%ManufacturerName% = inpoutng_Install,NT$ARCH$
 
-[Standard.NT$ARCH$]
-;%inpoutng.DeviceDesc%=inpoutng_Device, ROOT\inpoutng
-%inpoutng.DeviceDesc%=inpoutng_Device, ACPI\inpoutng
-%inpoutng.DeviceDesc%=inpoutng_Device, ISAPNP\inpoutng
-;%inpoutng.DeviceDesc%=inpoutng_Device, DOSDEVICES\inpoutng
-;%inpoutng.DeviceDesc%=inpoutng_Device, DEVICE\inpoutng
+[inpoutng_Install.NT$ARCH$]
+%inpoutng.DeviceDesc% = inpoutng_Device, root\inpoutng
 
 [inpoutng_Device.NT]
 CopyFiles=Drivers_Dir
@@ -68,8 +64,8 @@ ServiceBinary  = %12%\inpoutng.sys
 ;
 
 [inpoutng_Device.NT.CoInstallers]
-AddReg=inpoutng_Device_CoInstaller_AddReg
-CopyFiles=inpoutng_Device_CoInstaller_CopyFiles
+AddReg = inpoutng_Device_CoInstaller_AddReg
+CopyFiles = inpoutng_Device_CoInstaller_CopyFiles
 
 [inpoutng_Device_CoInstaller_AddReg]
 HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
@@ -84,8 +80,8 @@ KmdfLibraryVersion = $KMDFVERSION$
 
 [Strings]
 SPSVCINST_ASSOCSERVICE= 0x00000002
-ManufacturerName="Gvozdev A. Feodor"
-ClassName="System"
+ManufacturerName = "Gvozdev A. Feodor"
+ClassName = "System"
 DiskName = "InpOutNG Installation Disk"
 inpoutng.DeviceDesc = "Чтение/запись портов ISA/PCI InpOutNG"
 inpoutng.SVCDESC = "Служба InpOutNG"

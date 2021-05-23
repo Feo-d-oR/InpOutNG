@@ -27,39 +27,39 @@
     </Inf>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Device.h">
+    <ResourceCompile Include="inpoutng.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Driver.h">
+    <ClInclude Include="driver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Public.h">
+    <ClInclude Include="public.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Queue.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Trace.h">
+    <ClInclude Include="queue.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="trace.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Device.c">
+    <ClCompile Include="device.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Driver.c">
+    <ClCompile Include="driver.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Queue.c">
+    <ClCompile Include="queue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="inpoutng.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
   </ItemGroup>
 </Project>

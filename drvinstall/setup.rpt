@@ -1,8 +1,8 @@
-MakeCAB Report: Sun May 16 16:12:15 2021
+MakeCAB Report: Wed May 19 22:01:58 2021
 
-Total files:              6
-Bytes before:        54,430
-Bytes after:         19,306
-After/Before:            35.47% compression
-Time:                     0.07 seconds ( 0 hr  0 min  0.07 sec)
-Throughput:             805.37 Kb/second
+Total files:              4
+Bytes before:     1,751,547
+Bytes after:      1,686,059
+After/Before:            96.26% compression
+Time:                     0.50 seconds ( 0 hr  0 min  0.50 sec)
+Throughput:            3420.99 Kb/second

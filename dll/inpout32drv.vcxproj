@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -116,6 +116,7 @@
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SDLCheck>true</SDLCheck>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -156,6 +157,7 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <SDLCheck>true</SDLCheck>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -197,6 +199,7 @@
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SDLCheck>true</SDLCheck>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -238,6 +241,7 @@
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <SDLCheck>true</SDLCheck>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -258,8 +262,22 @@
     <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="inpout32drv.cpp" />
-    <ClCompile Include="osversion.cpp" />
+    <ClCompile Include="drvinstall.c" />
+    <ClCompile Include="drviomem.c" />
+    <ClCompile Include="inpout32drv.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="osversion.c">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsC</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="drvioport.c" />
+    <ClCompile Include="outmsg.c" />
     <ClCompile Include="StdAfx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -268,15 +286,29 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\drvinstall\disk1\inpoutng.cab" />
+    <None Include="..\inpoutng\Debug\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\Debug\x64\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\Release\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\Release\x64\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\x64\Debug\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\x64\Release\drvinstall\inpoutng.sys" />
+    <None Include="bin2.bin" />
+    <None Include="bin3.bin" />
     <None Include="inpout32.sys" />
     <None Include="inpout32drv.def" />
+    <None Include="inpoutng.sys" />
+    <None Include="inpoutng64.sys" />
     <None Include="inpoutx64.sys" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="inpout32drv.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="datadll.h" />
+    <ClInclude Include="drvinstall.h" />
     <ClInclude Include="inpout32.h" />
+    <ClInclude Include="outmsg.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="StdAfx.h" />
   </ItemGroup>

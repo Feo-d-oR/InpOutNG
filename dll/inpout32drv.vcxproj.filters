@@ -15,13 +15,25 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="inpout32drv.cpp">
+    <ClCompile Include="inpout32drv.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="osversion.cpp">
+    <ClCompile Include="osversion.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="StdAfx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="drvioport.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="drvinstall.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="drviomem.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="outmsg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -31,6 +43,21 @@
     </None>
     <None Include="inpout32.sys" />
     <None Include="inpoutx64.sys" />
+    <None Include="..\drvinstall\disk1\inpoutng.cab" />
+    <None Include="..\inpoutng\Debug\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\Debug\x64\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\Release\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\Release\x64\drvinstall\inpoutng.sys" />
+    <None Include="..\inpoutng\x64\Debug\drvinstall\inpoutng.sys" />
+    <None Include="bin2.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bin3.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="inpoutng.sys" />
+    <None Include="inpoutng64.sys" />
+    <None Include="..\inpoutng\x64\Release\drvinstall\inpoutng.sys" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inpout32.h">
@@ -40,6 +67,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="StdAfx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="drvinstall.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="datadll.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="outmsg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

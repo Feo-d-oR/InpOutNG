@@ -20,7 +20,9 @@
 ..\cab\x86\inpoutng.cat
 ..\cab\x86\inpoutng.inf
 ..\cab\x86\inpoutng.sys
+..\cab\x86\WdfCoinstaller01009.dll
 .Set DestinationDir=x64
 ..\cab\x64\inpoutng.cat
 ..\cab\x64\inpoutng.inf
 ..\cab\x64\inpoutng.sys
+..\cab\x64\WdfCoinstaller01009.dll

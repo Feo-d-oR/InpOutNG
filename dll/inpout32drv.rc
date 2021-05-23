@@ -13,13 +13,41 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// Neutral resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEU)
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+#pragma code_page(1251)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// BIN
+//
+
+#if defined(_DEBUG)
+IDR_INPOUTNG		BIN                     "..\\inpoutng\\Debug\\drvinstall\\inpoutng.sys"
+#else
+IDR_INPOUTNG            BIN                     "..\\inpoutng\\Release\\drvinstall\\inpoutng.sys"
+#endif
+
+#if defined(_DEBUG)
+IDR_INPOUTNG64		BIN                     "..\\inpoutng\\x64\\Debug\\drvinstall\\inpoutng.sys"
+#else
+IDR_INPOUTNG64          BIN                     "..\\inpoutng\\x64\\Release\\drvinstall\\inpoutng.sys"
+#endif
+
+IDR_CAB			BIN                     "..\\drvinstall\\disk1\\inpoutng.cab"
+
+#endif    // Neutral resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Russian (Russia) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_RUS)
-#ifdef _WIN32
 LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 #pragma code_page(1251)
-#endif //_WIN32
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -69,9 +97,9 @@ BEGIN
     BEGIN
         BLOCK "080004b0"
         BEGIN
-            VALUE "Comments", "Drivers are self-signed in this version. Beware."
-            VALUE "CompanyName", "Gvozdev A. Feodor"
-            VALUE "FileDescription", "inpoutng/64"
+            VALUE "Comments", "Важно! В данном выпуске драйверы подписаны тестовой цифровой подписью! Это нормально."
+            VALUE "CompanyName", "Гвоздев Фёдор Александрович"
+            VALUE "FileDescription", "Библиотека для драйвера InpOutNG"
             VALUE "FileVersion", "2, 0, 0, 0"
             VALUE "InternalName", "inpoutng"
             VALUE "LegalCopyright", "Freeware"
@@ -79,7 +107,6 @@ BEGIN
             VALUE "OriginalFilename", "inpoutng.dll"
             VALUE "ProductName", "inpoutng"
             VALUE "ProductVersion", "2, 0, 0, 0"
-            //VALUE "SpecialBuild", "x64 Compatible build\r\nIncludes basic DLPortIO Compatibility\r\nIncludes signed drivers (Thanks to Red Fox UK) for Vista x64 compatiblity.\r\n"
         END
     END
     BLOCK "VarFileInfo"
@@ -88,27 +115,7 @@ BEGIN
     END
 END
 
-#endif    // Russian resources
-/////////////////////////////////////////////////////////////////////////////
-
-
-/////////////////////////////////////////////////////////////////////////////
-// Neutral (Sys. Default) resources
-
-#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUSD)
-#ifdef _WIN32
-LANGUAGE LANG_NEUTRAL, SUBLANG_SYS_DEFAULT
-#pragma code_page(1251)
-#endif //_WIN32
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// BIN
-//
-
-IDR_INPOUTNG            BIN                     "inpoutng.sys"
-IDR_INPOUTNG64          BIN                     "inpoutng64.sys"
-#endif    // Neutral (Sys. Default) resources
+#endif    // Russian (Russia) resources
 /////////////////////////////////////////////////////////////////////////////
 
 

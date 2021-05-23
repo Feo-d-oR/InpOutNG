@@ -102,7 +102,7 @@ Return Value:
         //
         status = WdfDeviceCreateDeviceInterface(
             device,
-            &GUID_DEVINTERFACE_inpoutng,
+            &GUID_DEVINTERFACE_INPOUTNG,
             NULL // ReferenceString
             );
 
@@ -124,7 +124,7 @@ Return Value:
         // for the child devices. This is an optional information provided to
         // uniquely idenitfy the bus the device is connected.
         //
-        busInfo.BusTypeGuid = GUID_DEVCLASS_INPOUTNG;
+        busInfo.BusTypeGuid = GUID_DEVCLASS_SYSTEM;
         busInfo.LegacyBusType = PNPBus;
         busInfo.BusNumber = 0;
 

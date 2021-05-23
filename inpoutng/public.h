@@ -15,17 +15,25 @@ Environment:
 
 --*/
 
+#pragma once
+
+EXTERN_C_START
 //
 // Define an Interface Guid so that apps can find the device and talk to it.
 //
-
-DEFINE_GUID (GUID_DEVINTERFACE_inpoutng,
+DEFINE_GUID (GUID_DEVINTERFACE_INPOUTNG,
     0xf3c34686,0xe4e8,0x43db,0xb3,0x8a,0xad,0xef,0xc6,0xda,0x58,0x51);
 // {f3c34686-e4e8-43db-b38a-adefc6da5851}
 
+/*
 DEFINE_GUID(GUID_DEVCLASS_INPOUTNG,
     0x67918a31,0xdae5,0x4f1d,0x86,0xd1,0xfa,0xf2,0xc3,0x73,0x28,0xc3);
 // {67918a31-dae5-4f1d-86d1-faf2c37328c3
+*/
+
+DEFINE_GUID(GUID_DEVCLASS_SYSTEM,
+    0x4d36e97d, 0xe325, 0x11ce, 0xbf, 0xc1, 0x08, 0x00, 0x2b, 0xe1, 0x03, 0x18);
+// {4d36e97d-e325-11ce-bfc1-08002be10318}
 
 #define IOCTL_READ_PORT_UCHAR	 CTL_CODE(40000, 0x801, METHOD_BUFFERED, FILE_ANY_ACCESS) //-1673519100 CTL_CODE(40000, 0x801, METHOD_BUFFERED, FILE_ANY_ACCESS)
 #define IOCTL_WRITE_PORT_UCHAR	 CTL_CODE(40000, 0x802, METHOD_BUFFERED, FILE_ANY_ACCESS) //-1673519096 CTL_CODE(40000, 0x802, METHOD_BUFFERED, FILE_ANY_ACCESS)
@@ -40,12 +48,14 @@ DEFINE_GUID(GUID_DEVCLASS_INPOUTNG,
 #pragma pack(push)
 #pragma pack(1)
 
-struct tagPhys32Struct
+typedef struct tagPhys32Struct
 {
     HANDLE PhysicalMemoryHandle;
     SIZE_T dwPhysMemSizeInBytes;
     PVOID pvPhysAddress;
     PVOID pvPhysMemLin;
-};
+} phys32Struct_t, *p_phys32Struct_t;
 
 #pragma pack()
+
+EXTERN_C_END
