@@ -24,18 +24,6 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // BIN
 //
 
-#if defined(_DEBUG)
-IDR_INPOUTNG		BIN                     "..\\Debug\\inpoutng\\inpoutng.sys"
-#else
-IDR_INPOUTNG            BIN                     "..\\Release\\inpoutng\\inpoutng.sys"
-#endif
-
-#if defined(_DEBUG)
-IDR_INPOUTNG64		BIN                     "..\\x64\\Debug\\inpoutng\\inpoutng.sys"
-#else
-IDR_INPOUTNG64          BIN                     "..\\x64\\Release\\inpoutng\\inpoutng.sys"
-#endif
-
 IDR_CAB			BIN                     "..\\drvinstall\\disk1\\inpoutng.cab"
 
 #endif    // Neutral resources

@@ -119,19 +119,18 @@ check_reboot(
 DWORD
 inpOutNGCreate(
 	_In_opt_ LPCTSTR szDeviceDescription,
-	_In_ LPCTSTR szHwId,
-	_Inout_ LPBOOL pbRebootRequired,
-	_Out_ LPGUID pguidAdapter)
+	_In_ LPCTSTR szHwId)
 {
 	DWORD dwResult = ERROR_SUCCESS;
 	HMODULE libnewdev = NULL;
 	DWORD drvInstFlags = DIIRFLAG_FORCE_INF;
+	BOOL	rebootRequired;
 	GUID    GUID_DEV_INPOUTNG = { 0xf3c34686, 0xe4e8, 0x43db, 0xb3, 0x8a, 0xad, 0xef, 0xc6, 0xda, 0x58, 0x51 };
 	// {f3c34686-e4e8-43db-b38a-adefc6da5851}
 
-	TCHAR *drvPath = L"C:\\Users\\FeodoR\\src\\inpout32\\inpoutng\\x64\\Debug\\drvinstall";
+	TCHAR *drvPath = L"C:\\Users\\FeodoR\\src\\inpout32\\x64\\Debug\\inpoutng";
 	
-	if (!DiInstallDriver(NULL, drvPath, drvInstFlags, pbRebootRequired))
+	if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
 	{
 		dwResult = GetLastError();
 		msg(M_NONFATAL | M_ERRNO, L"%s::%d DiInstallDevice failed", TEXT(__FUNCTION__), __LINE__);
@@ -140,9 +139,7 @@ inpOutNGCreate(
 
 	msg(M_DEBUG, L"Device installation finished, last Error code is 0x%x", dwResult);
 
-	if (szHwId == NULL
-		|| pbRebootRequired == NULL
-		|| pguidAdapter == NULL)
+	if (szHwId == NULL)
 	{
 		return ERROR_BAD_ARGUMENTS;
 	}
@@ -285,7 +282,7 @@ inpOutNGCreate(
 	 * assumes a driver is already installed in the driver store.
 	 */
 	//if (!DiInstallDevice(NULL, hDevInfoList, &devinfo_data, NULL, DIIDFLAG_INSTALLCOPYINFDRIVERS, pbRebootRequired))
-	if (!DiInstallDriver(NULL, drvPath, DIIRFLAG_FORCE_INF, pbRebootRequired))
+	if (!DiInstallDriver(NULL, drvPath, DIIRFLAG_FORCE_INF, &rebootRequired))
 	{
 		dwResult = GetLastError();
 		msg(M_NONFATAL | M_ERRNO, L"%s::%d DiInstallDevice failed", TEXT(__FUNCTION__), __LINE__);
@@ -351,6 +348,8 @@ cleanup_hDevInfoList:
 /***********************************************************************/
 int inst32()
 {
+	inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng");
+#if 0
 	TCHAR szDriverSys[MAX_PATH];
 
 	int errCode = ERROR_SUCCESS;
@@ -430,12 +429,14 @@ int inst32()
 	}
 	CloseServiceHandle(Ser);
 	CloseServiceHandle(Mgr);
-
+#endif
 	return 0;
 }
 
 int inst64()
 {
+	inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng");
+#if 0
 	TCHAR szDriverSys[MAX_PATH];
 
 	SC_HANDLE  Mgr = NULL;
@@ -517,7 +518,7 @@ int inst64()
 	}
 	CloseServiceHandle(Ser);
 	CloseServiceHandle(Mgr);
-
+#endif
 	return 0;
 }
 

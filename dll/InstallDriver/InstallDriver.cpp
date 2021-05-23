@@ -3,11 +3,7 @@
 
 #include "stdafx.h"
 #include "InstallDriver.h"
-#include "..\inpout32.h"
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#endif
+#include <inpout32.h>
 
 // The one and only application object
 int APIENTRY _tWinMain(HINSTANCE hInstance,
