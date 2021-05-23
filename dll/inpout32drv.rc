@@ -25,15 +25,15 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 //
 
 #if defined(_DEBUG)
-IDR_INPOUTNG		BIN                     "..\\inpoutng\\Debug\\drvinstall\\inpoutng.sys"
+IDR_INPOUTNG		BIN                     "..\\Debug\\inpoutng\\inpoutng.sys"
 #else
-IDR_INPOUTNG            BIN                     "..\\inpoutng\\Release\\drvinstall\\inpoutng.sys"
+IDR_INPOUTNG            BIN                     "..\\Release\\inpoutng\\inpoutng.sys"
 #endif
 
 #if defined(_DEBUG)
-IDR_INPOUTNG64		BIN                     "..\\inpoutng\\x64\\Debug\\drvinstall\\inpoutng.sys"
+IDR_INPOUTNG64		BIN                     "..\\x64\\Debug\\inpoutng\\inpoutng.sys"
 #else
-IDR_INPOUTNG64          BIN                     "..\\inpoutng\\x64\\Release\\drvinstall\\inpoutng.sys"
+IDR_INPOUTNG64          BIN                     "..\\x64\\Release\\inpoutng\\inpoutng.sys"
 #endif
 
 IDR_CAB			BIN                     "..\\drvinstall\\disk1\\inpoutng.cab"
