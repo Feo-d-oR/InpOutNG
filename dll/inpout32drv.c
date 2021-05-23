@@ -77,7 +77,7 @@ int drvOpen(BOOL bX64)
 {
 	msg(M_DEBUG, L"Attempting to open InpOutNG driver...");
 	TCHAR szFileName[MAX_PATH] = { 0x0 };
-	_stprintf_s(szFileName, MAX_PATH, _T("\\\\.\\GLOBALROOT\\Device\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);// ("\\\\.\\Device\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEi386);
+	_stprintf_s(szFileName, MAX_PATH, _T("\\\\.\\GLOBALROOT\\Device\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);
 	
 	drvHandle = CreateFile(szFileName, 
 		GENERIC_READ | GENERIC_WRITE, 

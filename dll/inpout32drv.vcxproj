@@ -262,6 +262,7 @@
     <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cabextract.c" />
     <ClCompile Include="drvinstall.c" />
     <ClCompile Include="drviomem.c" />
     <ClCompile Include="inpout32drv.c">

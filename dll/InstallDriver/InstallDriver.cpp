@@ -16,6 +16,9 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(lpCmdLine);
 	UNREFERENCED_PARAMETER(nCmdShow);
 	int nRetCode = 0;
+	
+	inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng");
+	
 	BOOL bResult = IsInpOutDriverOpen();
 
 	if (IsXP64Bit())
