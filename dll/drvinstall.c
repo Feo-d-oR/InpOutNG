@@ -115,6 +115,7 @@ check_reboot(
 
 	return ERROR_SUCCESS;
 }
+
 static TCHAR drvPath[MAX_PATH];
 DWORD
 inpOutNGCreate(

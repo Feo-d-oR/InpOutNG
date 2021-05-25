@@ -39,6 +39,9 @@
     <ClCompile Include="cabextract.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="drvWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="inpout32drv.def">
