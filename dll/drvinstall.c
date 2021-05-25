@@ -41,12 +41,12 @@ find_function(const WCHAR* libname, const char* funcname, HMODULE* m)
 	void* fptr = NULL;
 
 	/* Make sure the dll is loaded from the system32 folder */
-	if (!GetSystemDirectoryW(libpath, _countof(libpath)))
+	if (!GetSystemDirectoryW(libpath, ARRAY_SIZE(libpath)))
 	{
 		return NULL;
 	}
 
-	size_t len = _countof(libpath) - wcslen(libpath) - 1;
+	size_t len = ARRAY_SIZE(libpath) - wcslen(libpath) - 1;
 	if (len < wcslen(libname) + 1)
 	{
 		SetLastError(ERROR_INSUFFICIENT_BUFFER);
@@ -115,21 +115,26 @@ check_reboot(
 
 	return ERROR_SUCCESS;
 }
-
+static TCHAR drvPath[MAX_PATH];
 DWORD
 inpOutNGCreate(
 	_In_opt_ LPCTSTR szDeviceDescription,
-	_In_ LPCTSTR szHwId)
+	_In_ LPCTSTR szHwId,
+	_In_ LPCTSTR cabPath)
 {
-	DWORD dwResult = ERROR_SUCCESS;
+	DWORD	dwResult = ERROR_SUCCESS;
 	HMODULE libnewdev = NULL;
-	DWORD drvInstFlags = DIIRFLAG_FORCE_INF;
+	DWORD	drvInstFlags = DIIRFLAG_FORCE_INF;
 	BOOL	rebootRequired;
 	GUID    GUID_DEV_INPOUTNG = { 0xf3c34686, 0xe4e8, 0x43db, 0xb3, 0x8a, 0xad, 0xef, 0xc6, 0xda, 0x58, 0x51 };
 	// {f3c34686-e4e8-43db-b38a-adefc6da5851}
-
-	TCHAR *drvPath = L"C:\\Users\\FeodoR\\src\\inpout32\\x64\\Debug\\inpoutng";
 	
+	ZeroMemory(drvPath, sizeof(drvPath));
+
+	_stprintf_s(drvPath, ARRAY_SIZE(drvPath), L"%s%s", cabPath, IsXP64Bit() ? L"x64" : L"x86");
+	
+	msg(M_DEBUG, L"%s::%d Trying to install InpOutNG driver from %s", TEXT(__FUNCTION__), __LINE__, drvPath);
+
 	if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
 	{
 		dwResult = GetLastError();
@@ -138,7 +143,7 @@ inpOutNGCreate(
 	}
 
 	msg(M_DEBUG, L"Device installation finished, last Error code is 0x%x", dwResult);
-
+	//return dwResult;
 	if (szHwId == NULL)
 	{
 		return ERROR_BAD_ARGUMENTS;
@@ -158,7 +163,7 @@ inpOutNGCreate(
 	if (!SetupDiClassNameFromGuid(
 		&GUID_DEVCLASS_SYSTEM,
 		szClassName,
-		_countof(szClassName),
+		ARRAY_SIZE(szClassName),
 		NULL))
 	{
 		dwResult = GetLastError();
@@ -281,8 +286,8 @@ inpOutNGCreate(
 	 * by setting the drvinfo argument of DiInstallDevice as NULL. This
 	 * assumes a driver is already installed in the driver store.
 	 */
-	//if (!DiInstallDevice(NULL, hDevInfoList, &devinfo_data, NULL, DIIDFLAG_INSTALLCOPYINFDRIVERS, pbRebootRequired))
-	if (!DiInstallDriver(NULL, drvPath, DIIRFLAG_FORCE_INF, &rebootRequired))
+	if (!DiInstallDevice(NULL, hDevInfoList, &devinfo_data, NULL, DIIDFLAG_INSTALLCOPYINFDRIVERS, &rebootRequired))
+	//if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
 	{
 		dwResult = GetLastError();
 		msg(M_NONFATAL | M_ERRNO, L"%s::%d DiInstallDevice failed", TEXT(__FUNCTION__), __LINE__);
@@ -290,8 +295,6 @@ inpOutNGCreate(
 	}
 
 	msg(M_DEBUG, L"Device installation finished, last Error code is 0x%x", dwResult);
-	/* Get network adapter ID from registry. Retry for max 30sec. */
-	//dwResult = get_net_adapter_guid(hDevInfoList, &devinfo_data, 30, pguidAdapter);
 
 cleanup_remove_device:
 #if 0
@@ -346,184 +349,34 @@ cleanup_hDevInfoList:
 }
 
 /***********************************************************************/
-int inst32()
+DWORD drvInst()
 {
-	inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng");
-#if 0
-	TCHAR szDriverSys[MAX_PATH];
-
-	int errCode = ERROR_SUCCESS;
-
-	SC_HANDLE Mgr = NULL;
-	SC_HANDLE Ser = NULL;
-
-	_tcscpy_s(szDriverSys, MAX_PATH, DRIVERNAMEx86);
-	_tcscat_s(szDriverSys, MAX_PATH, _T(".sys\0"));
-
-	GetSystemDirectory(inpPath, MAX_PATH);
-	HRSRC dllResource = FindResource(drvHandle, MAKEINTRESOURCE(IDR_INPOUT32), _T("bin"));
-	if (dllResource)
+	DWORD result = ERROR_FAILED_DRIVER_ENTRY;
+	if (!unpackCabinet())
 	{
-		HGLOBAL binGlob = LoadResource(drvHandle, dllResource);
-
-		if (binGlob)
-		{
-			void* binData = LockResource(binGlob);
-
-			if (binData)
-			{
-				HANDLE file;
-
-				_tcscat_s(inpPath, sizeof(inpPath), _T("\\Drivers\\"));
-				_tcscat_s(inpPath, sizeof(inpPath), szDriverSys);
-
-				file = CreateFile(inpPath,
-					GENERIC_WRITE,
-					0,
-					NULL,
-					CREATE_ALWAYS,
-					0,
-					NULL);
-
-				if (file && file != INVALID_HANDLE_VALUE)
-				{
-					DWORD size, written;
-					size = SizeofResource(drvHandle, dllResource);
-					WriteFile(file, binData, size, &written, NULL);
-					CloseHandle(file);
-				}
-				else
-				{
-					//Error
-				}
-			}
-		}
-	}
-
-	Mgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-	if (Mgr == NULL)
-	{							//No permission to create service
-		if ((errCode = GetLastError()) == ERROR_ACCESS_DENIED)
-		{
-			return errCode;  // error access denied
-		}
+		msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred while unpack CAB file!", TEXT(__FUNCTION__), __LINE__);
 	}
 	else
 	{
-		TCHAR szFullPath[MAX_PATH] = _T("System32\\Drivers\\\0");
-		_tcscat_s(szFullPath, MAX_PATH, szDriverSys);
-		Ser = CreateService(Mgr,
-			DRIVERNAMEx86,
-			DRIVERNAMEx86,
-			SERVICE_ALL_ACCESS,
-			SERVICE_KERNEL_DRIVER,
-			SERVICE_DEMAND_START,
-			SERVICE_ERROR_NORMAL,
-			szFullPath,
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			NULL
-		);
-	}
-	CloseServiceHandle(Ser);
-	CloseServiceHandle(Mgr);
-#endif
-	return 0;
-}
-
-int inst64()
-{
-	inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng");
-#if 0
-	TCHAR szDriverSys[MAX_PATH];
-
-	SC_HANDLE  Mgr = NULL;
-	SC_HANDLE  Ser = NULL;
-
-	_tcscpy_s(szDriverSys, MAX_PATH, DRIVERNAMEx64);
-	_tcscat_s(szDriverSys, MAX_PATH, _T(".sys\0"));
-
-	GetSystemDirectory(inpPath, MAX_PATH);
-	HRSRC dllResource = FindResource(drvHandle, MAKEINTRESOURCE(IDR_INPOUTX64), _T("bin"));
-
-	if (dllResource)
-	{
-		HGLOBAL binGlob = LoadResource(drvHandle, dllResource);
-
-		if (binGlob)
+		result = inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng", getCabTmpDir());
+		if (result != ERROR_SUCCESS)
 		{
-			void* binData = LockResource(binGlob);
-
-			if (binData)
-			{
-				HANDLE file;
-				_tcscat_s(inpPath, sizeof(inpPath), _T("\\Drivers\\"));
-				_tcscat_s(inpPath, sizeof(inpPath), szDriverSys);
-
-				PVOID OldValue;
-				DisableWOW64(&OldValue);
-				file = CreateFile(inpPath,
-					GENERIC_WRITE,
-					0,
-					NULL,
-					CREATE_ALWAYS,
-					0,
-					NULL);
-
-				if (file && file != INVALID_HANDLE_VALUE)
-				{
-					DWORD size, written;
-
-					size = SizeofResource(drvHandle, dllResource);
-					WriteFile(file, binData, size, &written, NULL);
-					CloseHandle(file);
-				}
-				else
-				{
-					//error
-				}
-				RevertWOW64(&OldValue);
-			}
+			msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred while driver installation routine!", TEXT(__FUNCTION__), __LINE__);
+		}
+		if (!removeTmpDir())
+		{
+			msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred while removing temporary directory!", TEXT(__FUNCTION__), __LINE__);
+		}
+		else
+		{
+			msg(M_DEBUG, L"%s::%d, Driver was successfully installed. Enjoy!", TEXT(__FUNCTION__), __LINE__);
 		}
 	}
-
-	Mgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-	if (Mgr == NULL)
-	{							//No permission to create service
-		if (GetLastError() == ERROR_ACCESS_DENIED)
-		{
-			return ERROR_ACCESS_DENIED;  // error access denied
-		}
-	}
-	else
-	{
-		TCHAR szFullPath[MAX_PATH] = _T("System32\\Drivers\\\0");
-		_tcscat_s(szFullPath, MAX_PATH, szDriverSys);
-		Ser = CreateService(Mgr,
-			DRIVERNAMEx64,
-			DRIVERNAMEx64,
-			SERVICE_ALL_ACCESS,
-			SERVICE_KERNEL_DRIVER,
-			SERVICE_DEMAND_START,
-			SERVICE_ERROR_NORMAL,
-			szFullPath,
-			NULL,
-			NULL,
-			NULL,
-			NULL,
-			NULL
-		);
-	}
-	CloseServiceHandle(Ser);
-	CloseServiceHandle(Mgr);
-#endif
-	return 0;
+	return result;
 }
 
 /**************************************************************************/
-int start(LPCTSTR pszDriver)
+DWORD drvStart(LPCTSTR pszDriver)
 {
 	SC_HANDLE  Mgr;
 	SC_HANDLE  Ser;

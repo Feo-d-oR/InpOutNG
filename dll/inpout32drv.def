@@ -20,3 +20,4 @@ SetPhysLong			  @14
 inpOutNGCreate		  @15
 outmsg				  @16
 outmsg_va		      @17
+drvInst				  @18

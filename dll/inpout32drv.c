@@ -75,9 +75,12 @@ void drvClose(void)
 
 int drvOpen(BOOL bX64)
 {
+	UNREFERENCED_PARAMETER(bX64);
+	DWORD status = ERROR_FILE_NOT_FOUND;
+
 	msg(M_DEBUG, L"Attempting to open InpOutNG driver...");
 	TCHAR szFileName[MAX_PATH] = { 0x0 };
-	_stprintf_s(szFileName, MAX_PATH, _T("\\\\.\\GLOBALROOT\\Device\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);
+	_stprintf_s(szFileName, MAX_PATH, _T("\\\\.\\GLOBALROOT\\Device\\%s"), DRIVERNAME);
 	
 	drvHandle = CreateFile(szFileName, 
 		GENERIC_READ | GENERIC_WRITE, 
@@ -87,44 +90,37 @@ int drvOpen(BOOL bX64)
 		FILE_ATTRIBUTE_NORMAL, 
 		NULL);
 
-	if(drvHandle == INVALID_HANDLE_VALUE) 
+	if(isNotHandle(drvHandle))
 	{
-		if(start(bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86))
+		status = drvInst();
+		if (status != ERROR_SUCCESS)
 		{
-			/*  */
-			if (bX64)
-				inst64();	//Install the x64 driver
-			else
-				inst32();	//Install the i386 driver
-			/*	*/
-			int nResult = start(bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);
+			msg((M_ERR | M_ERRNO), L"Unable to install %s driver. Error code %d.", DRIVERNAME, status);
+		}
+		else
+		{
+			drvHandle = CreateFile(szFileName, 
+				GENERIC_READ | GENERIC_WRITE, 
+				0, 
+				NULL,
+				OPEN_EXISTING, 
+				FILE_ATTRIBUTE_NORMAL, 
+				NULL);
 
-			if (nResult == ERROR_SUCCESS)
+			if (isNotHandle(drvHandle))
 			{
-				drvHandle = CreateFile(szFileName, 
-					GENERIC_READ | GENERIC_WRITE, 
-					0, 
-					NULL,
-					OPEN_EXISTING, 
-					FILE_ATTRIBUTE_NORMAL, 
-					NULL);
-
-				if(drvHandle != INVALID_HANDLE_VALUE) 
-				{
-					msg(M_DEBUG, L"Successfully opened %s driver\n", bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);
-					return ERROR_SUCCESS;
-				}
+				msg((M_WARN | M_ERRNO), L"Unable to open %s driver. Error code %d.", DRIVERNAME, status);
 			}
 			else
 			{
-				msg((M_WARN | M_ERRNO), L"Unable to open %s driver. Error code %d.", bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86, nResult);
-				//RemoveDriver();
+				msg(M_DEBUG, L"Successfully opened %s driver\n", DRIVERNAME);
+				return ERROR_SUCCESS;
 			}
 		}
 		return ERROR_FILE_NOT_FOUND;
 	}
 
-	msg(M_DEBUG, L"Successfully opened %s driver.", bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);
+	msg(M_DEBUG, L"Successfully opened %s driver.", DRIVERNAME);
 	return 0;
 }
 

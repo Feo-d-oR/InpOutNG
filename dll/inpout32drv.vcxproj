@@ -288,19 +288,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\drvinstall\disk1\inpoutng.cab" />
-    <None Include="..\inpoutng\Debug\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\Debug\x64\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\Release\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\Release\x64\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\x64\Debug\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\x64\Release\drvinstall\inpoutng.sys" />
-    <None Include="bin2.bin" />
-    <None Include="bin3.bin" />
-    <None Include="inpout32.sys" />
     <None Include="inpout32drv.def" />
-    <None Include="inpoutng.sys" />
-    <None Include="inpoutng64.sys" />
-    <None Include="inpoutx64.sys" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="inpout32drv.rc" />

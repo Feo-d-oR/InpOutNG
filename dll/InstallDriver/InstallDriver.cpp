@@ -17,8 +17,8 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(nCmdShow);
 	int nRetCode = 0;
 	
-	inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng");
-	
+	drvInst();
+/*
 	BOOL bResult = IsInpOutDriverOpen();
 
 	if (IsXP64Bit())
@@ -35,5 +35,6 @@ int APIENTRY _tWinMain(HINSTANCE hInstance,
 		else
 			MessageBox(NULL, _T("Unable to install or open the\n32bit InpOut driver InpOut32.sys.\n\nPlease try running as Administrator"), _T("InpOut Installation"), 0);
 	}
+*/
 	return nRetCode;
 }
