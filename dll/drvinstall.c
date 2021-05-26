@@ -119,9 +119,10 @@ check_reboot(
 static TCHAR drvPath[MAX_PATH];
 DWORD
 inpOutNGCreate(
-	_In_opt_ LPCTSTR szDeviceDescription,
-	_In_ LPCTSTR szHwId,
-	_In_ LPCTSTR cabPath)
+	_In_opt_	LPCTSTR szDeviceDescription,
+	_In_		LPCTSTR szHwId,
+	_In_		LPCTSTR cabPath,
+	_Inout_		p_drvInstState_t pdrvState)
 {
 	DWORD	dwResult = ERROR_SUCCESS;
 	HMODULE libnewdev = NULL;
@@ -136,15 +137,18 @@ inpOutNGCreate(
 	
 	msg(M_DEBUG, L"%s::%d Trying to install InpOutNG driver from %s", TEXT(__FUNCTION__), __LINE__, drvPath);
 
+	/*
 	if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
 	{
 		dwResult = GetLastError();
 		msg(M_NONFATAL | M_ERRNO, L"%s::%d DiInstallDevice failed", TEXT(__FUNCTION__), __LINE__);
 		//goto cleanup_remove_device;
 	}
-
+	*pdrvState = dwResult == ERROR_SUCCESS ? DS_READY : DS_STARTED;
 	msg(M_DEBUG, L"Device installation finished, last Error code is 0x%x", dwResult);
+	*/
 	//return dwResult;
+
 	if (szHwId == NULL)
 	{
 		return ERROR_BAD_ARGUMENTS;
@@ -287,6 +291,7 @@ inpOutNGCreate(
 	 * by setting the drvinfo argument of DiInstallDevice as NULL. This
 	 * assumes a driver is already installed in the driver store.
 	 */
+/*
 	if (!DiInstallDevice(NULL, hDevInfoList, &devinfo_data, NULL, DIIDFLAG_INSTALLCOPYINFDRIVERS, &rebootRequired))
 	//if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
 	{
@@ -294,9 +299,17 @@ inpOutNGCreate(
 		msg(M_NONFATAL | M_ERRNO, L"%s::%d DiInstallDevice failed", TEXT(__FUNCTION__), __LINE__);
 		goto cleanup_remove_device;
 	}
+*/	
+	if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
+	{
+		dwResult = GetLastError();
+		msg(M_NONFATAL | M_ERRNO, L"%s::%d DiInstallDevice failed", TEXT(__FUNCTION__), __LINE__);
+		//goto cleanup_remove_device;
+	}
+	*pdrvState = dwResult == ERROR_SUCCESS ? DS_READY : DS_STARTED;
 
 	msg(M_DEBUG, L"Device installation finished, last Error code is 0x%x", dwResult);
-
+	
 cleanup_remove_device:
 #if 0
 	if (dwResult != ERROR_SUCCESS)
@@ -350,7 +363,7 @@ cleanup_hDevInfoList:
 }
 
 /***********************************************************************/
-DWORD drvInst()
+DWORD drvInst(p_drvInstState_t pdrvState)
 {
 	DWORD result = ERROR_FAILED_DRIVER_ENTRY;
 	if (!unpackCabinet())
@@ -359,11 +372,12 @@ DWORD drvInst()
 	}
 	else
 	{
-		result = inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng", getCabTmpDir());
+		result = inpOutNGCreate(L"Чтение/запись портов ISA/PCI InpOutNG", L"ROOT\\inpoutng", getCabTmpDir(), pdrvState);
 		if (result != ERROR_SUCCESS)
 		{
 			msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred while driver installation routine!", TEXT(__FUNCTION__), __LINE__);
 		}
+/**/
 		if (!removeTmpDir())
 		{
 			msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred while removing temporary directory!", TEXT(__FUNCTION__), __LINE__);
@@ -372,50 +386,7 @@ DWORD drvInst()
 		{
 			msg(M_DEBUG, L"%s::%d, Driver was successfully installed. Enjoy!", TEXT(__FUNCTION__), __LINE__);
 		}
+/**/
 	}
 	return result;
-}
-
-/**************************************************************************/
-DWORD drvStart(LPCTSTR pszDriver)
-{
-	SC_HANDLE  Mgr;
-	SC_HANDLE  Ser;
-
-	Mgr = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
-
-	if (Mgr == NULL)
-	{							//No permission to create service
-		if (GetLastError() == ERROR_ACCESS_DENIED)
-		{
-			Mgr = OpenSCManager(NULL, NULL, GENERIC_READ);
-			Ser = OpenService(Mgr, pszDriver, GENERIC_EXECUTE);
-			if (Ser)
-			{    // we have permission to start the service
-				if (!StartService(Ser, 0, NULL))
-				{
-					CloseServiceHandle(Ser);
-					return ERROR_SERVICE_NOT_ACTIVE; // we could open the service but unable to start
-				}
-			}
-		}
-	}
-	else
-	{// Successfuly opened Service Manager with full access
-		Ser = OpenService(Mgr, pszDriver, SERVICE_ALL_ACCESS);
-		if (Ser)
-		{
-			if (!StartService(Ser, 0, NULL))
-			{
-				CloseServiceHandle(Ser);
-				return ERROR_SERVICE_START_HANG; // opened the Service handle with full access permission, but unable to start
-			}
-			else
-			{
-				CloseServiceHandle(Ser);
-				return ERROR_SUCCESS;
-			}
-		}
-	}
-	return 1;
 }

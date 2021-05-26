@@ -6,7 +6,9 @@
 static errno_t status;
 static TCHAR tmpDir[MAX_PATH] = { 0x0 };
 static TCHAR fileName[MAX_PATH] = { 0x0 };
-
+static TCHAR expandParams[MAX_PATH] = { 0x0 };
+static TCHAR expandFile[MAX_PATH] = { 0x0 };
+static TCHAR expandDir[MAX_PATH] = { 0x0 };
 TCHAR* getCabFileName( void )
 {
 	return fileName;
@@ -61,12 +63,9 @@ BOOL unpackCabinet(void)
 	DWORD cabSize		= 0x0;
 	DWORD szWrote		= 0x0;
 
-	TCHAR expandParams[MAX_PATH] = { 0x0 };
-	TCHAR expandFile[MAX_PATH] = { 0x0 };
-	TCHAR expandDir[MAX_PATH] = { 0x0 };
-	SHELLEXECUTEINFO	sei;
-	memset(&sei, 0x0, sizeof(sei));
-	
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+
 	if (!createTmpDir())
 	{
 		msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred creating directory %s.", TEXT(__FUNCTION__), __LINE__, tmpDir);
@@ -135,20 +134,8 @@ BOOL unpackCabinet(void)
 							_stprintf_s(expandParams, ARRAY_SIZE(expandParams), L"-F:* %s %s", fileName, getCabTmpDir());
 							msg(M_DEBUG, L"%s::%d, With options '%s'...", TEXT(__FUNCTION__), __LINE__, expandParams);
 
-							msg(M_DEBUG, L"%s::%d, With directory '%s'...", TEXT(__FUNCTION__), __LINE__, getCabTmpDir());
-
-							sei.cbSize = sizeof(sei);
-							sei.hwnd = NULL;
-							sei.fMask = SEE_MASK_FLAG_DDEWAIT | SEE_MASK_FLAG_NO_UI;
-							sei.lpVerb = L"open";
-							sei.lpFile = expandFile;
-							sei.lpParameters = expandParams;
-							sei.lpDirectory = NULL;
-							sei.nShow = SW_SHOWDEFAULT;
 							_stprintf_s(expandDir, ARRAY_SIZE(expandDir), L"%s %s", expandFile, expandParams);
 							msg(M_DEBUG, L"%s::%d, With directory '%s'...", TEXT(__FUNCTION__), __LINE__, expandDir);
-							STARTUPINFO si;
-							PROCESS_INFORMATION pi;
 
 							ZeroMemory(&si, sizeof(si));
 							si.cb = sizeof(si);
@@ -178,21 +165,6 @@ BOOL unpackCabinet(void)
 							CloseHandle(pi.hProcess);
 							CloseHandle(pi.hThread);
 
-							//result = isNotHandle(ShellExecute(NULL, L"open", expandFile, expandParams, getCabTmpDir(), 1));
-							/*
-							result = ShellExecuteEx(&sei);
-							if (!result)
-							{
-								msg(M_ERR | M_ERRNO, L"%s::%d, Could not execute '%s'!", TEXT(__FUNCTION__), __LINE__, expandFile);
-								msg(M_ERR | M_ERRNO, L"%s::%d, With options '%s'!", TEXT(__FUNCTION__), __LINE__, expandParams);
-								msg(M_ERR | M_ERRNO, L"%s::%d, With directory '%s'!", TEXT(__FUNCTION__), __LINE__, getCabTmpDir());
-								removeTmpDir();
-							}
-							else
-							{
-								msg(M_DEBUG, L"%s::%d, Cabinet %s extracted to directory '%s'...", TEXT(__FUNCTION__), __LINE__, fileName, getCabTmpDir());
-							}
-							*/
 						}
 					}
 				}
@@ -204,21 +176,46 @@ BOOL unpackCabinet(void)
 
 BOOL removeTmpDir(void)
 {
-	TCHAR* cabTmpDir = getCabTmpDir();
-	SHFILEOPSTRUCT shfo = {
-		NULL,
-		FO_DELETE,
-		cabTmpDir,
-		NULL,
-		FOF_SILENT | FOF_NOERRORUI | FOF_NOCONFIRMATION,
-		FALSE,
-		NULL,
-		NULL };
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
 
-	status = SHFileOperation(&shfo);
-	if (status)
+	GetSystemDirectory(expandDir, ARRAY_SIZE(expandDir));
+	_stprintf_s(expandFile, ARRAY_SIZE(expandFile), L"%s\\cmd.exe", expandDir);
+	msg(M_DEBUG, L"%s::%d, Will execute '%s'...", TEXT(__FUNCTION__), __LINE__, expandFile);
+
+	_stprintf_s(expandParams, ARRAY_SIZE(expandParams), L"/c rmdir /q /s %s", getCabTmpDir());
+	msg(M_DEBUG, L"%s::%d, With options '%s'...", TEXT(__FUNCTION__), __LINE__, expandParams);
+
+	_stprintf_s(expandDir, ARRAY_SIZE(expandDir), L"%s %s", expandFile, expandParams);
+	msg(M_DEBUG, L"%s::%d, With directory '%s'...", TEXT(__FUNCTION__), __LINE__, expandDir);
+
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+
+	// Start the child process. 
+	if (!CreateProcess(NULL,   // No module name (use command line)
+		expandDir,        // Command line
+		NULL,           // Process handle not inheritable
+		NULL,           // Thread handle not inheritable
+		FALSE,          // Set handle inheritance to FALSE
+		0,              // No creation flags
+		NULL,           // Use parent's environment block
+		NULL,           // Use parent's starting directory 
+		&si,            // Pointer to STARTUPINFO structure
+		&pi)           // Pointer to PROCESS_INFORMATION structure
+		)
 	{
-		msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred removing directory %s.", TEXT(__FUNCTION__), __LINE__, cabTmpDir);
+		msg(M_ERR | M_ERRNO, L"CreateProcess failed (%d).\n", GetLastError());
+		//return;
 	}
+
+	// Wait until child process exits.
+	WaitForSingleObject(pi.hProcess, INFINITE);
+
+	// Close process and thread handles. 
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+
 	return (status == ERROR_SUCCESS);
 }

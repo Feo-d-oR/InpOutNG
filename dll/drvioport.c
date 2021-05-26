@@ -44,9 +44,9 @@ static ULONG DlPortRead(DWORD ctlCode, DWORD inSize, USHORT portAddr)
 		&szReturned,
 		NULL);
 
-	if (opCode != ERROR_SUCCESS)
+	if (!opCode)
 	{
-		msg(M_WARN | M_ERRNO, L"PortReadError %u", opCode);
+		msg(M_WARN | M_ERRNO, L"PortReadError");
 	}
 
 	return inData.val.inLong;
@@ -75,7 +75,7 @@ ULONG _stdcall DlPortReadPortUlong(ULONG portAddr)
 static void DlPortWrite(DWORD ctlCode, DWORD dataSize, USHORT portAddr, ULONG portData)
 {
 	__declspec(align(8)) outPortData_t outData = { .addr = 0x0, .val.outLong = 0x0 };
-	DWORD	opCode;
+	BOOL	opCode;
 	DWORD	szReturned;
 
 	outData.addr = portAddr;
@@ -90,9 +90,9 @@ static void DlPortWrite(DWORD ctlCode, DWORD dataSize, USHORT portAddr, ULONG po
 		&szReturned,
 		NULL);
 
-	if (opCode != ERROR_SUCCESS)
+	if (!opCode)
 	{
-		msg(M_WARN | M_ERRNO, L"PortWriteError %u", opCode);
+		msg(M_WARN | M_ERRNO, L"PortWriteError");
 	}
 }
 
