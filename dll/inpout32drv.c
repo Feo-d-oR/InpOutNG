@@ -22,12 +22,91 @@
 #include <winioctl.h>
 #include "datadll.h"
 
-HANDLE drvHandle = INVALID_HANDLE_VALUE;
-HINSTANCE dllInstance = INVALID_HANDLE_VALUE;
-
+HANDLE		drvHandle	= INVALID_HANDLE_VALUE;
+HINSTANCE	dllInstance = INVALID_HANDLE_VALUE;
+HWND		parentHwnd	= INVALID_HANDLE_VALUE;
 //SECURITY_ATTRIBUTES inpSa;
 
 TCHAR inpPath[MAX_PATH];
+
+#define MYMENU_EXIT         (WM_APP + 101)
+#define MYMENU_MESSAGEBOX   (WM_APP + 102)
+
+LRESULT CALLBACK DLLWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	switch (message)
+	{
+	case WM_COMMAND:
+		switch (wParam)
+		{
+		case MYMENU_EXIT:
+			SendMessage(hwnd, WM_CLOSE, 0, 0);
+			break;
+		case MYMENU_MESSAGEBOX:
+			MessageBox(hwnd, L"Test", L"MessageBox", MB_OK);
+			break;
+		}
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hwnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
+BOOL RegisterDLLWindowClass(wchar_t szClassName[])
+{
+	WNDCLASSEX wc;
+	wc.hInstance = dllInstance;
+	wc.lpszClassName = (LPCWSTR)szClassName;
+	wc.lpfnWndProc = DLLWindowProc;
+	wc.style = CS_DBLCLKS;
+	wc.cbSize = sizeof(WNDCLASSEX);
+	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.lpszMenuName = NULL;
+	wc.cbClsExtra = 0;
+	wc.cbWndExtra = 0;
+	wc.hbrBackground = (HBRUSH)COLOR_BACKGROUND;
+	return RegisterClassEx(&wc);
+}
+
+HMENU CreateDLLWindowMenu()
+{
+	HMENU hMenu;
+	hMenu = CreateMenu();
+	HMENU hMenuPopup;
+	if (hMenu == NULL)
+		return FALSE;
+	hMenuPopup = CreatePopupMenu();
+	AppendMenu(hMenuPopup, MF_STRING, MYMENU_EXIT, TEXT("Exit"));
+	AppendMenu(hMenu, MF_POPUP, (UINT_PTR)hMenuPopup, TEXT("File"));
+
+	hMenuPopup = CreatePopupMenu();
+	AppendMenu(hMenuPopup, MF_STRING, MYMENU_MESSAGEBOX, TEXT("MessageBox"));
+	AppendMenu(hMenu, MF_POPUP, (UINT_PTR)hMenuPopup, TEXT("Test"));
+	return hMenu;
+}
+
+DWORD WINAPI ThreadProc(LPVOID lpParam)
+{
+	MSG messages;
+	wchar_t* pString = (PWCHAR)lpParam;
+	HMENU hMenu = CreateDLLWindowMenu();
+	RegisterDLLWindowClass(L"InjectedDLLWindowClass");
+	parentHwnd = FindWindow(L"Window Injected Into ClassName", L"Window Injected Into Caption");
+	HWND hwnd = CreateWindowEx(0, L"InjectedDLLWindowClass", pString, WS_EX_PALETTEWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 400, 300, parentHwnd, hMenu, dllInstance, NULL);
+	ShowWindow(hwnd, SW_SHOWNORMAL);
+	while (GetMessage(&messages, NULL, 0, 0))
+	{
+		TranslateMessage(&messages);
+		DispatchMessage(&messages);
+	}
+	return 1;
+}
 
 BOOL APIENTRY DllMain(HINSTANCE	hinstDll, 
 					  DWORD		fdwReason, 
@@ -37,14 +116,13 @@ BOOL APIENTRY DllMain(HINSTANCE	hinstDll,
 	
 	BOOL bx64 = IsXP64Bit();
 	
-	dllInstance = hinstDll;
-	
-	
 	switch(fdwReason)
 	{
 		case DLL_PROCESS_ATTACH:
 		{
-			drvOpen(bx64);
+			dllInstance = hinstDll;
+			CreateThread(NULL, 0, ThreadProc, (LPVOID)L"Window Title", 0x0, NULL);
+			//drvOpen(bx64);
 			break;
 		}
 		case DLL_PROCESS_DETACH:

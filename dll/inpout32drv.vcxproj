@@ -263,7 +263,6 @@
     <ClCompile Include="cabextract.c" />
     <ClCompile Include="drvinstall.c" />
     <ClCompile Include="drviomem.c" />
-    <ClCompile Include="drvWindow.cpp" />
     <ClCompile Include="inpout32drv.c">
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">CompileAsC</CompileAs>
       <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">CompileAsC</CompileAs>
