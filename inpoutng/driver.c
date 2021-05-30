@@ -19,8 +19,8 @@ Environment:
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
-#pragma alloc_text (PAGE, inpoutngEvtDeviceAdd)
-#pragma alloc_text (PAGE, inpoutngEvtDriverContextCleanup)
+#pragma alloc_text (PAGE, inpOutNgEvtDeviceAdd)
+#pragma alloc_text (PAGE, inpOutNgEvtDriverContextCleanup)
 #endif
 
 NTSTATUS
@@ -72,10 +72,10 @@ Return Value:
     // the framework driver object is deleted during driver unload.
     //
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
-    attributes.EvtCleanupCallback = inpoutngEvtDriverContextCleanup;
+    attributes.EvtCleanupCallback = inpOutNgEvtDriverContextCleanup;
 
     WDF_DRIVER_CONFIG_INIT(&config,
-                           inpoutngEvtDeviceAdd
+                           inpOutNgEvtDeviceAdd
                            );
 
     status = WdfDriverCreate(DriverObject,
@@ -100,7 +100,7 @@ Return Value:
 }
 
 NTSTATUS
-inpoutngEvtDeviceAdd(
+inpOutNgEvtDeviceAdd(
     _In_    WDFDRIVER       Driver,
     _Inout_ PWDFDEVICE_INIT DeviceInit
     )
@@ -131,7 +131,7 @@ Return Value:
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Entry");
 
-    status = inpoutngCreateDevice(DeviceInit);
+    status = inpOutNgCreateDevice(DeviceInit);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Exit");
 
@@ -139,7 +139,7 @@ Return Value:
 }
 
 VOID
-inpoutngEvtDriverContextCleanup(
+inpOutNgEvtDriverContextCleanup(
     _In_ WDFOBJECT DriverObject
     )
 /*++
@@ -162,19 +162,6 @@ Return Value:
     PAGED_CODE();
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Entry");
-
-#if 0
-#ifdef _AMD64_
-    WCHAR DOSNameBuffer[] = L"\\DosDevices\\inpoutx64";
-#else
-    WCHAR DOSNameBuffer[] = L"\\DosDevices\\inpout32";
-#endif
-    UNICODE_STRING uniDOSString;
-
-    RtlInitUnicodeString(&uniDOSString, DOSNameBuffer);
-    IoDeleteSymbolicLink(&uniDOSString);
-    IoDeleteDevice(DriverObject->DeviceObject);
-#endif
 
     //
     // Stop WPP Tracing

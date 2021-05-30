@@ -59,6 +59,11 @@ StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
 ServiceBinary  = %12%\inpoutng.sys
 
+[inpoutng_Device.NT.FactDef]
+ConfigPriority=HARDWIRED
+IOConfig=0000:ffff(ffff::)
+IRQConfig=LS:3,4,5,7,8,9,10,11
+
 ;
 ;--- inpoutng_Device Coinstaller installation ------
 ;
@@ -75,6 +80,7 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
 
 [inpoutng_Device.NT.Wdf]
 KmdfService =  inpoutng, inpoutng_wdfsect
+
 [inpoutng_wdfsect]
 KmdfLibraryVersion = $KMDFVERSION$
 

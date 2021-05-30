@@ -18,11 +18,11 @@ Environment:
 #include "device.tmh"
 
 #ifdef ALLOC_PRAGMA
-#pragma alloc_text (PAGE, inpoutngCreateDevice)
+#pragma alloc_text (PAGE, inpOutNgCreateDevice)
 #endif
 
 NTSTATUS
-inpoutngCreateDevice(
+inpOutNgCreateDevice(
     _Inout_ PWDFDEVICE_INIT DeviceInit
     )
 /*++
@@ -52,14 +52,9 @@ Return Value:
 //!!    PDEVICE_OBJECT deviceObject;
 //!!    NTSTATUS status;
 
-#ifdef _AMD64_
-    WCHAR NameBuffer[] = L"\\Device\\inpoutng";//!! x64";
-    WCHAR DOSNameBuffer[] = L"\\DosDevices\\inpoutng";//!! x64";
-#else
     WCHAR NameBuffer[] = L"\\Device\\inpoutng";
-    WCHAR DOSNameBuffer[] = L"\\DosDevices\\inpoutng";
-#endif
-    UNICODE_STRING uniNameString, uniDOSString;
+
+    UNICODE_STRING uniNameString;
 
     PAGED_CODE();
 
@@ -78,7 +73,6 @@ Return Value:
     if (NT_SUCCESS(status)) {
 
         RtlInitUnicodeString(&uniNameString, NameBuffer);
-        RtlInitUnicodeString(&uniDOSString, DOSNameBuffer);
 
         //
         // Get a pointer to the device context structure that we just associated
@@ -89,12 +83,13 @@ Return Value:
         // If you pass a wrong object handle it will return NULL and assert if
         // run under framework verifier mode.
         //
-        deviceContext = DeviceGetContext(device);
+        deviceContext = inpOutNgGetContext(device);
 
         //
         // Initialize the context.
         //
-        deviceContext->PrivateDeviceData = 0;
+        deviceContext->Device = device;
+        deviceContext->HwErrCount = 0;
 
         //
         // Create a device interface so that applications can find and talk
@@ -112,12 +107,6 @@ Return Value:
             //
             status = inpoutngQueueInitialize(device);
         }
-        /*
-        status = WdfDeviceCreateSymbolicLink(device, &uniDOSString);
-        if (!NT_SUCCESS(status)) {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate DOS name creation failed %!STATUS!", status);
-        }
-        */
 
         //
         // This value is used in responding to the IRP_MN_QUERY_BUS_INFORMATION
@@ -129,6 +118,15 @@ Return Value:
         busInfo.BusNumber = 0;
 
         WdfDeviceSetBusInformationForChildren(device, &busInfo);
+        
+        //Create ISR…
+        //
+        status = inpOutNgInterruptCreate(deviceContext);
+
+        if (!NT_SUCCESS(status)) {
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate ISR creation failed %!STATUS!", status);
+            return status;
+        }
 
         status = WdfDeviceCreateSymbolicLink(device, &uniNameString);
         if (!NT_SUCCESS(status)) {

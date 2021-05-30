@@ -24,22 +24,33 @@ EXTERN_C_START
 //
 typedef struct _DEVICE_CONTEXT
 {
-    ULONG PrivateDeviceData;  // just a placeholder
+    WDFDEVICE               Device;
+
+    // Following fields are specific to the hardware
+    // Configuration
+
+    WDFINTERRUPT            Interrupt;     // Returned by InterruptCreate
+
+    // IOCTL handling
+    WDFQUEUE                ControlQueue;
+    BOOLEAN                 RequireSingleTransfer;
+
+    ULONG                   HwErrCount;
 
 } DEVICE_CONTEXT, *PDEVICE_CONTEXT;
 
 //
-// This macro will generate an inline function called DeviceGetContext
+// This macro will generate an inline function called inpOutNgGetContext
 // which will be used to get a pointer to the device context memory
 // in a type safe manner.
 //
-WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, DeviceGetContext)
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, inpOutNgGetContext)
 
 //
 // Function to initialize the device and its callbacks
 //
 NTSTATUS
-inpoutngCreateDevice(
+inpOutNgCreateDevice(
     _Inout_ PWDFDEVICE_INIT DeviceInit
     );
 

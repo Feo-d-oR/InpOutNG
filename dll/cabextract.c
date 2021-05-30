@@ -2,13 +2,13 @@
 #include "resource.h"
 #include <shellapi.h>
 
-
 static errno_t status;
 static TCHAR tmpDir[MAX_PATH] = { 0x0 };
 static TCHAR fileName[MAX_PATH] = { 0x0 };
 static TCHAR expandParams[MAX_PATH] = { 0x0 };
 static TCHAR expandFile[MAX_PATH] = { 0x0 };
 static TCHAR expandDir[MAX_PATH] = { 0x0 };
+
 TCHAR* getCabFileName( void )
 {
 	return fileName;
@@ -142,16 +142,16 @@ BOOL unpackCabinet(void)
 							ZeroMemory(&pi, sizeof(pi));
 
 							// Start the child process. 
-							if (!CreateProcess(NULL,   // No module name (use command line)
-								expandDir,        // Command line
-								NULL,           // Process handle not inheritable
-								NULL,           // Thread handle not inheritable
-								FALSE,          // Set handle inheritance to FALSE
-								0,              // No creation flags
-								NULL,           // Use parent's environment block
-								NULL,           // Use parent's starting directory 
-								&si,            // Pointer to STARTUPINFO structure
-								&pi)           // Pointer to PROCESS_INFORMATION structure
+							if (!CreateProcess(NULL,	// No module name (use command line)
+									expandDir,			// Command line
+									NULL,				// Process handle not inheritable
+									NULL,				// Thread handle not inheritable
+									FALSE,				// Set handle inheritance to FALSE
+									0,					// No creation flags
+									NULL,				// Use parent's environment block
+									NULL,				// Use parent's starting directory 
+									&si,				// Pointer to STARTUPINFO structure
+									&pi)				// Pointer to PROCESS_INFORMATION structure
 								)
 							{
 								msg(M_ERR | M_ERRNO, L"CreateProcess failed (%d).\n", GetLastError());
@@ -194,20 +194,19 @@ BOOL removeTmpDir(void)
 	ZeroMemory(&pi, sizeof(pi));
 
 	// Start the child process. 
-	if (!CreateProcess(NULL,   // No module name (use command line)
-		expandDir,        // Command line
-		NULL,           // Process handle not inheritable
-		NULL,           // Thread handle not inheritable
-		FALSE,          // Set handle inheritance to FALSE
-		0,              // No creation flags
-		NULL,           // Use parent's environment block
-		NULL,           // Use parent's starting directory 
-		&si,            // Pointer to STARTUPINFO structure
-		&pi)           // Pointer to PROCESS_INFORMATION structure
+	if (!CreateProcess(NULL,	// No module name (use command line)
+			expandDir,			// Command line
+			NULL,				// Process handle not inheritable
+			NULL,				// Thread handle not inheritable
+			FALSE,				// Set handle inheritance to FALSE
+			0,					// No creation flags
+			NULL,				// Use parent's environment block
+			NULL,				// Use parent's starting directory 
+			&si,				// Pointer to STARTUPINFO structure
+			&pi)				// Pointer to PROCESS_INFORMATION structure
 		)
 	{
 		msg(M_ERR | M_ERRNO, L"CreateProcess failed (%d).\n", GetLastError());
-		//return;
 	}
 
 	// Wait until child process exits.

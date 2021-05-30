@@ -176,6 +176,7 @@
   <ItemGroup>
     <ClCompile Include="device.c" />
     <ClCompile Include="driver.c" />
+    <ClCompile Include="irqhandler.c" />
     <ClCompile Include="queue.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

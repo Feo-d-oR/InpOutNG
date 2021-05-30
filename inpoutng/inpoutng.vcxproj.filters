@@ -61,5 +61,8 @@
     <ClCompile Include="queue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="irqhandler.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

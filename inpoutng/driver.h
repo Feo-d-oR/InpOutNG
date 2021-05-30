@@ -37,7 +37,38 @@ NTSTATUS MapPhysicalMemoryToLinearSpace(PVOID pPhysAddress,
 //
 
 DRIVER_INITIALIZE DriverEntry;
-EVT_WDF_DRIVER_DEVICE_ADD inpoutngEvtDeviceAdd;
-EVT_WDF_OBJECT_CONTEXT_CLEANUP inpoutngEvtDriverContextCleanup;
+EVT_WDF_DRIVER_DEVICE_ADD inpOutNgEvtDeviceAdd;
+EVT_WDF_OBJECT_CONTEXT_CLEANUP inpOutNgEvtDriverContextCleanup;
+
+NTSTATUS
+inpOutNgInterruptCreate(
+    IN PDEVICE_CONTEXT DevExt
+);
+
+BOOLEAN
+inpOutNgEvtInterruptIsr(
+    IN WDFINTERRUPT Interrupt,
+    IN ULONG        MessageID
+);
+
+VOID
+inpOutNgEvtInterruptDpc(
+    WDFINTERRUPT Interrupt,
+    WDFOBJECT    Device
+);
+
+NTSTATUS
+inpOutNgEvtInterruptEnable(
+    IN WDFINTERRUPT Interrupt,
+    IN WDFDEVICE    Device
+);
+
+NTSTATUS
+inpOutNgEvtInterruptDisable(
+    IN WDFINTERRUPT Interrupt,
+    IN WDFDEVICE    Device
+);
+
+
 
 EXTERN_C_END
