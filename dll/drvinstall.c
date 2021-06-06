@@ -310,7 +310,7 @@ inpOutNGCreate(
 
 	msg(M_DEBUG, L"Device installation finished, last Error code is 0x%x", dwResult);
 	
-cleanup_remove_device:
+//cleanup_remove_device:
 #if 0
 	if (dwResult != ERROR_SUCCESS)
 	{
