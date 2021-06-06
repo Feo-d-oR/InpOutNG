@@ -36,6 +36,8 @@ typedef struct _DEVICE_CONTEXT
     BOOLEAN                 RequireSingleTransfer;
 
     ULONG                   HwErrCount;
+    BOOLEAN                 ReadReady;
+    BOOLEAN                 WriteReady;
 
 } DEVICE_CONTEXT, *PDEVICE_CONTEXT;
 
@@ -51,7 +53,44 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, inpOutNgGetContext)
 //
 NTSTATUS
 inpOutNgCreateDevice(
-    _Inout_ PWDFDEVICE_INIT DeviceInit
+    IN PWDFDEVICE_INIT DeviceInit,
+    OUT WDFDEVICE      *Device
     );
+
+NTSTATUS
+inpOutNgPrepareHardware(
+    IN PDEVICE_CONTEXT DevExt,
+    IN WDFCMRESLIST    ResourcesTranslated
+);
+
+NTSTATUS
+inpOutNgInitializeDeviceContext(
+    IN PDEVICE_CONTEXT DevExt
+);
+
+VOID
+inpOutNgCleanupDeviceContext(
+    IN PDEVICE_CONTEXT DevExt
+);
+
+NTSTATUS
+inpOutNgInitWrite(
+    IN PDEVICE_CONTEXT DevExt
+);
+
+NTSTATUS
+inpOutNgInitRead(
+    IN PDEVICE_CONTEXT DevExt
+);
+
+VOID
+inpOutNgShutdown(
+    IN PDEVICE_CONTEXT DevExt
+);
+
+VOID
+inpOutNgHardwareReset(
+    IN PDEVICE_CONTEXT DevExt
+);
 
 EXTERN_C_END

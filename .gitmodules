@@ -1,0 +1,3 @@
+[submodule "lazlib"]
+	path = lazlib
+	url = https://github.com/Feo-d-oR/lazLib.git

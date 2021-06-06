@@ -81,6 +81,7 @@ int drvOpen(BOOL bX64, p_drvInstState_t pdrvState)
 	UNREFERENCED_PARAMETER(bX64);
 	DWORD status = ERROR_FILE_NOT_FOUND;
 	TCHAR szFileName[MAX_PATH] = { 0x0 };
+	DWORD err;
 	if (*pdrvState == DS_STARTUP)
 	{
 		msg(M_DEBUG, L"We are in startup state, no use, exiting...");
@@ -97,47 +98,58 @@ int drvOpen(BOOL bX64, p_drvInstState_t pdrvState)
 		OPEN_EXISTING, 
 		FILE_ATTRIBUTE_NORMAL, 
 		NULL);
-
+	
+	err = GetLastError();
+	
 	if(isNotHandle(drvHandle))
 	{
-		msg((M_DEBUG | M_ERRNO), L"Starting installation of %s driver...", DRIVERNAME);
-		
-		*pdrvState = DS_INSTALLING;
-		
-		status = drvInst(pdrvState);
+		switch (err) {
+			case ERROR_FILE_NOT_FOUND: {
+				msg((M_DEBUG | M_ERRNO), L"Starting installation of %s driver...", DRIVERNAME);
 
-		drvHandle = CreateFile(szFileName, 
-				GENERIC_READ | GENERIC_WRITE, 
-				0, 
-				NULL,
-				OPEN_EXISTING, 
-				FILE_ATTRIBUTE_NORMAL, 
-				NULL);
+				*pdrvState = DS_INSTALLING;
 
-		if (isNotHandle(drvHandle))
-		{
-			msg((M_WARN | M_ERRNO), L"Unable to open %s driver. Error code %d.", DRIVERNAME, status);
+				status = drvInst(pdrvState);
+
+				drvHandle = CreateFile(szFileName,
+					GENERIC_READ | GENERIC_WRITE,
+					0,
+					NULL,
+					OPEN_EXISTING,
+					FILE_ATTRIBUTE_NORMAL,
+					NULL);
+
+				if (isNotHandle(drvHandle))
+				{
+					msg((M_WARN | M_ERRNO), L"Unable to open %s driver. Error code %d.", DRIVERNAME, status);
+				}
+				else
+				{
+					msg(M_DEBUG, L"Successfully opened %s driver\n", DRIVERNAME);
+					return ERROR_SUCCESS;
+				}
+				if (!removeTmpDir())
+				{
+					msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred while removing temporary directory!", TEXT(__FUNCTION__), __LINE__);
+				}
+				else
+				{
+					msg(M_DEBUG, L"%s::%d, Driver was successfully installed. Enjoy!", TEXT(__FUNCTION__), __LINE__);
+				}
+				break;
+			}
+			case ERROR_ACCESS_DENIED: {
+				msg(M_WARN, L"%s::%d, Access to file denied! Probably it is already opened elsewhere!", TEXT(__FUNCTION__), __LINE__);
+				break;
+			}
+			default: {
+				msg(M_WARN, L"%s::%d, Error %d while opening driver file!", TEXT(__FUNCTION__), __LINE__, err);
+			}
 		}
-		else
-		{
-			msg(M_DEBUG, L"Successfully opened %s driver\n", DRIVERNAME);
-			return ERROR_SUCCESS;
-		}
-/**/
-		if (!removeTmpDir())
-		{
-			msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred while removing temporary directory!", TEXT(__FUNCTION__), __LINE__);
-		}
-		else
-		{
-			msg(M_DEBUG, L"%s::%d, Driver was successfully installed. Enjoy!", TEXT(__FUNCTION__), __LINE__);
-		}
-/**/		
-		return ERROR_FILE_NOT_FOUND;
 	}
 
 	msg(M_DEBUG, L"Successfully opened %s driver.", DRIVERNAME);
-	return 0;
+	return err;
 }
 
 BOOL _stdcall IsInpOutDriverOpen()

@@ -100,6 +100,8 @@
     <VerifyDrivers />
     <VerifyFlags>133563</VerifyFlags>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(ConfigurationName)\</OutDir>
+    <IntDir>$(Platform)\$(ConfigurationName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
@@ -112,6 +114,8 @@
     <VerifyDrivers />
     <VerifyFlags>133563</VerifyFlags>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(ConfigurationName)\</OutDir>
+    <IntDir>$(Platform)\$(ConfigurationName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
@@ -124,6 +128,7 @@
     <VerifyDrivers />
     <VerifyFlags>133563</VerifyFlags>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(ConfigurationName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
@@ -136,6 +141,7 @@
     <VerifyDrivers />
     <VerifyFlags>133563</VerifyFlags>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(ConfigurationName)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <PostBuildEvent>
