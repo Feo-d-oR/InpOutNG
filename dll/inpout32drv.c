@@ -22,12 +22,16 @@
 #include <winioctl.h>
 #include "datadll.h"
 
-HANDLE drvHandle = INVALID_HANDLE_VALUE;
-HINSTANCE dllInstance = INVALID_HANDLE_VALUE;
-
+HANDLE		drvHandle	= INVALID_HANDLE_VALUE;
+HINSTANCE	dllInstance = INVALID_HANDLE_VALUE;
+HWND		parentHwnd	= INVALID_HANDLE_VALUE;
 //SECURITY_ATTRIBUTES inpSa;
 
-TCHAR inpPath[MAX_PATH];
+static DWORD  drvInstThreadId	= 0x0;
+static HANDLE drvInstThread		= INVALID_HANDLE_VALUE;
+static BOOL   bx64				= FALSE;
+
+static drvInstState_t	drvState = DS_STARTUP;
 
 BOOL APIENTRY DllMain(HINSTANCE	hinstDll, 
 					  DWORD		fdwReason, 
@@ -35,16 +39,14 @@ BOOL APIENTRY DllMain(HINSTANCE	hinstDll,
 {
 	UNREFERENCED_PARAMETER(lpReserved);
 	
-	BOOL bx64 = IsXP64Bit();
-	
-	dllInstance = hinstDll;
-	
+	bx64 = IsXP64Bit();
 	
 	switch(fdwReason)
 	{
 		case DLL_PROCESS_ATTACH:
 		{
-			drvOpen(bx64);
+			dllInstance = hinstDll;
+			drvOpen(bx64, &drvState);
 			break;
 		}
 		case DLL_PROCESS_DETACH:
@@ -52,10 +54,11 @@ BOOL APIENTRY DllMain(HINSTANCE	hinstDll,
 			drvClose();
 			drvHandle = INVALID_HANDLE_VALUE;
 			dllInstance = INVALID_HANDLE_VALUE;
+			drvState = DS_STARTUP;
 			break;
 		}
 	}
-
+	drvState = DS_STARTED;
 	return TRUE;
 }
 
@@ -73,12 +76,21 @@ void drvClose(void)
 
 /*********************************************************************/
 
-int drvOpen(BOOL bX64)
+int drvOpen(BOOL bX64, p_drvInstState_t pdrvState)
 {
-	msg(M_DEBUG, L"Attempting to open InpOutNG driver...");
+	UNREFERENCED_PARAMETER(bX64);
+	DWORD status = ERROR_FILE_NOT_FOUND;
 	TCHAR szFileName[MAX_PATH] = { 0x0 };
-	_stprintf_s(szFileName, MAX_PATH, _T("\\\\.\\GLOBALROOT\\Device\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);// ("\\\\.\\Device\\%s"), bX64 ? DRIVERNAMEx64 : DRIVERNAMEi386);
-	
+	DWORD err;
+	if (*pdrvState == DS_STARTUP)
+	{
+		msg(M_DEBUG, L"We are in startup state, no use, exiting...");
+		return ERROR_WRONG_TARGET_NAME;
+	}
+
+	_stprintf_s(szFileName, MAX_PATH, _T("\\\\.\\GLOBALROOT\\Device\\%s"), DRIVERNAME);
+	msg(M_DEBUG, L"Attempting to open InpOutNG driver (%s)...", szFileName);
+
 	drvHandle = CreateFile(szFileName, 
 		GENERIC_READ | GENERIC_WRITE, 
 		0, 
@@ -86,49 +98,65 @@ int drvOpen(BOOL bX64)
 		OPEN_EXISTING, 
 		FILE_ATTRIBUTE_NORMAL, 
 		NULL);
-
-	if(drvHandle == INVALID_HANDLE_VALUE) 
+	
+	err = GetLastError();
+	
+	if(isNotHandle(drvHandle))
 	{
-		if(start(bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86))
-		{
-			/*  */
-			if (bX64)
-				inst64();	//Install the x64 driver
-			else
-				inst32();	//Install the i386 driver
-			/*	*/
-			int nResult = start(bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);
+		switch (err) {
+			case ERROR_FILE_NOT_FOUND: {
+				msg((M_DEBUG | M_ERRNO), L"Starting installation of %s driver...", DRIVERNAME);
 
-			if (nResult == ERROR_SUCCESS)
-			{
-				drvHandle = CreateFile(szFileName, 
-					GENERIC_READ | GENERIC_WRITE, 
-					0, 
+				*pdrvState = DS_INSTALLING;
+
+				status = drvInst(pdrvState);
+
+				drvHandle = CreateFile(szFileName,
+					GENERIC_READ | GENERIC_WRITE,
+					0,
 					NULL,
-					OPEN_EXISTING, 
-					FILE_ATTRIBUTE_NORMAL, 
+					OPEN_EXISTING,
+					FILE_ATTRIBUTE_NORMAL,
 					NULL);
 
-				if(drvHandle != INVALID_HANDLE_VALUE) 
+				if (isNotHandle(drvHandle))
 				{
-					msg(M_DEBUG, L"Successfully opened %s driver\n", bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);
+					msg((M_WARN | M_ERRNO), L"Unable to open %s driver. Error code %d.", DRIVERNAME, status);
+				}
+				else
+				{
+					msg(M_DEBUG, L"Successfully opened %s driver\n", DRIVERNAME);
 					return ERROR_SUCCESS;
 				}
+				if (!removeTmpDir())
+				{
+					msg(M_ERR | M_ERRNO, L"%s::%d, Error occurred while removing temporary directory!", TEXT(__FUNCTION__), __LINE__);
+				}
+				else
+				{
+					msg(M_DEBUG, L"%s::%d, Driver was successfully installed. Enjoy!", TEXT(__FUNCTION__), __LINE__);
+				}
+				break;
 			}
-			else
-			{
-				msg((M_WARN | M_ERRNO), L"Unable to open %s driver. Error code %d.", bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86, nResult);
-				//RemoveDriver();
+			case ERROR_ACCESS_DENIED: {
+				msg(M_WARN, L"%s::%d, Access to file denied! Probably it is already opened elsewhere!", TEXT(__FUNCTION__), __LINE__);
+				break;
+			}
+			default: {
+				msg(M_WARN, L"%s::%d, Error %d while opening driver file!", TEXT(__FUNCTION__), __LINE__, err);
 			}
 		}
-		return ERROR_FILE_NOT_FOUND;
 	}
 
-	msg(M_DEBUG, L"Successfully opened %s driver.", bX64 ? DRIVERNAMEx64 : DRIVERNAMEx86);
-	return 0;
+	msg(M_DEBUG, L"Successfully opened %s driver.", DRIVERNAME);
+	return err;
 }
 
 BOOL _stdcall IsInpOutDriverOpen()
 {
+	if (drvState == DS_STARTED)
+	{
+		drvOpen(bx64, &drvState);
+	}
 	return ( (drvHandle != INVALID_HANDLE_VALUE) && (drvHandle != NULL) ) ? TRUE : FALSE;
 }

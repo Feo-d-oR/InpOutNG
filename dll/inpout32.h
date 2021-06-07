@@ -26,10 +26,4 @@ BOOL	_stdcall UnmapPhysicalMemory(_Inout_ HANDLE PhysicalMemoryHandle, _In_ PBYT
 BOOL	_stdcall GetPhysLong(_In_ PBYTE pbPhysAddr, _Out_ PDWORD pdwPhysVal);
 BOOL	_stdcall SetPhysLong(_In_ PBYTE pbPhysAddr, _Out_ DWORD dwPhysVal);
 
-DWORD inpOutNGCreate(_In_opt_ LPCTSTR szDeviceDescription, _In_ LPCTSTR szHwId);
-
-void outmsg(_In_ const unsigned int flags, _In_ const TCHAR* format, ...);     /* should be called via msg above */
-
-void outmsg_va(_In_ const unsigned int flags, _In_ const TCHAR* format, _In_ va_list arglist);
-
 EXTERN_C_END

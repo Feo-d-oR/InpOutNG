@@ -19,8 +19,8 @@ Environment:
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
-#pragma alloc_text (PAGE, inpoutngEvtDeviceAdd)
-#pragma alloc_text (PAGE, inpoutngEvtDriverContextCleanup)
+#pragma alloc_text (PAGE, inpOutNgEvtDeviceAdd)
+#pragma alloc_text (PAGE, inpOutNgEvtDriverContextCleanup)
 #endif
 
 NTSTATUS
@@ -54,8 +54,8 @@ Return Value:
 
 --*/
 {
-    WDF_DRIVER_CONFIG config;
-    WDF_OBJECT_ATTRIBUTES attributes;
+    WDF_DRIVER_CONFIG       config;
+    WDF_OBJECT_ATTRIBUTES   attributes;
 
     NTSTATUS status;
 
@@ -72,10 +72,10 @@ Return Value:
     // the framework driver object is deleted during driver unload.
     //
     WDF_OBJECT_ATTRIBUTES_INIT(&attributes);
-    attributes.EvtCleanupCallback = inpoutngEvtDriverContextCleanup;
+    attributes.EvtCleanupCallback = inpOutNgEvtDriverContextCleanup;
 
     WDF_DRIVER_CONFIG_INIT(&config,
-                           inpoutngEvtDeviceAdd
+                           inpOutNgEvtDeviceAdd
                            );
 
     status = WdfDriverCreate(DriverObject,
@@ -100,7 +100,7 @@ Return Value:
 }
 
 NTSTATUS
-inpoutngEvtDeviceAdd(
+inpOutNgEvtDeviceAdd(
     _In_    WDFDRIVER       Driver,
     _Inout_ PWDFDEVICE_INIT DeviceInit
     )
@@ -123,25 +123,139 @@ Return Value:
 
 --*/
 {
-    NTSTATUS status;
-
     UNREFERENCED_PARAMETER(Driver);
+
+    NTSTATUS                     status = STATUS_SUCCESS;
+    WDF_PNPPOWER_EVENT_CALLBACKS pnpPowerCallbacks;
+    WDF_OBJECT_ATTRIBUTES        attributes;
+    WDFDEVICE                    device;
+    PDEVICE_CONTEXT              devContext = NULL;
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "--> %!FUNC!");
 
     PAGED_CODE();
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Entry");
+    WdfDeviceInitSetIoType(DeviceInit, WdfDeviceIoDirect);
 
-    status = inpoutngCreateDevice(DeviceInit);
+    //
+    // Zero out the PnpPowerCallbacks structure.
+    //
+    WDF_PNPPOWER_EVENT_CALLBACKS_INIT(&pnpPowerCallbacks);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Exit");
+    //
+    // Set Callbacks for any of the functions we are interested in.
+    // If no callback is set, Framework will take the default action
+    // by itself.
+    //
+    pnpPowerCallbacks.EvtDevicePrepareHardware = inpOutNgEvtDevicePrepareHardware;
+    pnpPowerCallbacks.EvtDeviceReleaseHardware = inpOutNgEvtDeviceReleaseHardware;
+
+    //
+    // These two callbacks set up and tear down hardware state that must be
+    // done every time the device moves in and out of the D0-working state.
+    //
+    pnpPowerCallbacks.EvtDeviceD0Entry = inpOutNgEvtDeviceD0Entry;
+    pnpPowerCallbacks.EvtDeviceD0Exit =  inpOutNgEvtDeviceD0Exit;
+
+    //
+    // Register the PnP Callbacks..
+    //
+    WdfDeviceInitSetPnpPowerEventCallbacks(DeviceInit, &pnpPowerCallbacks);
+
+    //
+    // Initialize Fdo Attributes.
+    //
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attributes, DEVICE_CONTEXT);
+    //
+    // By opting for SynchronizationScopeDevice, we tell the framework to
+    // synchronize callbacks events of all the objects directly associated
+    // with the device. In this driver, we will associate queues and
+    // and DpcForIsr. By doing that we don't have to worrry about synchronizing
+    // access to device-context by Io Events and DpcForIsr because they would
+    // not concurrently ever. Framework will serialize them by using an
+    // internal device-lock.
+    //
+    attributes.SynchronizationScope = WdfSynchronizationScopeDevice;
+
+    //
+    // This callback is invoked when the device is removed or the driver
+    // is unloaded.
+    //
+    attributes.EvtCleanupCallback = inpOutNgEvtDeviceCleanup;
+
+    status = inpOutNgCreateDevice(DeviceInit, &device);
+
+    if (!NT_SUCCESS(status))
+    {
+        //
+        // Device Initialization failed.
+        //
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "DeviceCreate failed %!STATUS!", status);
+        return status;
+    }
+    //
+    // Get the DeviceExtension and initialize it. PLxGetDeviceContext is an inline function
+    // defined by WDF_DECLARE_CONTEXT_TYPE_WITH_NAME macro in the
+    // private header file. This function will do the type checking and return
+    // the device context. If you pass a wrong object a wrong object handle
+    // it will return NULL and assert if run under framework verifier mode.
+    //
+    devContext = inpOutNgGetContext(device);
+
+    devContext->Device = device;
+
+    TraceEvents(TRACE_LEVEL_INFORMATION,
+                TRACE_DRIVER,
+                "     AddDevice PDO (0x%p) FDO (0x%p), DevExt (0x%p)",
+                WdfDeviceWdmGetPhysicalDevice(device),
+                WdfDeviceWdmGetDeviceObject(device), devContext);
+
+    //
+    // Set the idle and wait-wake policy for this device.
+    //
+    status = inpOutNgSetIdleAndWakeSettings(devContext);
+
+    if (!NT_SUCCESS(status)) {
+        //
+        // NOTE: The attempt to set the Idle and Wake options
+        //       is a best-effort try. Failure is probably due to
+        //       the non-driver environmentals, such as the system,
+        //       bus or OS indicating that Wake is not supported for
+        //       this case.
+        //       All that being said, it probably not desirable to
+        //       return the failure code as it would cause the
+        //       AddDevice to fail and Idle and Wake are probably not
+        //       "must-have" options.
+        //
+        //       You must decide for your case whether Idle/Wake are
+        //       "must-have" options...but my guess is probably not.
+        //
+#if 1
+        status = STATUS_SUCCESS;
+#else
+        return status;
+#endif
+    }
+
+    //
+    // Initalize the Device Extension.
+    //
+    status = inpOutNgInitializeDeviceContext(devContext);
+
+    if (!NT_SUCCESS(status)) {
+        return status;
+    }
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "<-- %!FUNC! %!STATUS!", status);
 
     return status;
 }
 
+_Use_decl_annotations_
 VOID
-inpoutngEvtDriverContextCleanup(
-    _In_ WDFOBJECT DriverObject
-    )
+inpOutNgEvtDriverContextCleanup(
+    WDFOBJECT Driver
+)
 /*++
 Routine Description:
 
@@ -149,7 +263,7 @@ Routine Description:
 
 Arguments:
 
-    DriverObject - handle to a WDF Driver object.
+    Driver - handle to a WDF Driver object.
 
 Return Value:
 
@@ -157,27 +271,11 @@ Return Value:
 
 --*/
 {
-    UNREFERENCED_PARAMETER(DriverObject);
-
     PAGED_CODE();
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Entry");
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT,
+        "--> %!FUNC!");
 
-#if 0
-#ifdef _AMD64_
-    WCHAR DOSNameBuffer[] = L"\\DosDevices\\inpoutx64";
-#else
-    WCHAR DOSNameBuffer[] = L"\\DosDevices\\inpout32";
-#endif
-    UNICODE_STRING uniDOSString;
+    WPP_CLEANUP(WdfDriverWdmGetDriverObject(Driver));
 
-    RtlInitUnicodeString(&uniDOSString, DOSNameBuffer);
-    IoDeleteSymbolicLink(&uniDOSString);
-    IoDeleteDevice(DriverObject->DeviceObject);
-#endif
-
-    //
-    // Stop WPP Tracing
-    //
-    WPP_CLEANUP(WdfDriverWdmGetDriverObject((WDFDRIVER)DriverObject));
 }

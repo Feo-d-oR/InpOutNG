@@ -24,7 +24,7 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // BIN
 //
 
-IDR_CAB			BIN                     "..\\drvinstall\\disk1\\inpoutng.cab"
+IDR_CAB                 BIN                     "..\\drvinstall\\disk1\\inpoutng.cab"
 
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////

@@ -29,14 +29,14 @@ typedef struct _QUEUE_CONTEXT {
 WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUEUE_CONTEXT, QueueGetContext)
 
 NTSTATUS
-inpoutngQueueInitialize(
+inpOutNgQueueInitialize(
     _In_ WDFDEVICE Device
     );
 
 //
 // Events from the IoQueue object
 //
-EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL inpoutngEvtIoDeviceControl;
-EVT_WDF_IO_QUEUE_IO_STOP inpoutngEvtIoStop;
+EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL inpOutNgEvtIoDeviceControl;
+EVT_WDF_IO_QUEUE_IO_STOP inpOutNgEvtIoStop;
 
 EXTERN_C_END

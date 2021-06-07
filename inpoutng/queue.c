@@ -18,8 +18,8 @@ Environment:
 #include "queue.tmh"
 
 #ifdef ALLOC_PRAGMA
-#pragma alloc_text (PAGE, inpoutngQueueInitialize)
-#pragma alloc_text (PAGE, inpoutngEvtIoDeviceControl)
+#pragma alloc_text (PAGE, inpOutNgQueueInitialize)
+#pragma alloc_text (PAGE, inpOutNgEvtIoDeviceControl)
 #endif
 
 #pragma pack(push)
@@ -47,7 +47,7 @@ typedef struct S_OutPortData
 #pragma pack()
 
 NTSTATUS
-inpoutngQueueInitialize(
+inpOutNgQueueInitialize(
     _In_ WDFDEVICE Device
     )
 /*++
@@ -87,8 +87,8 @@ Return Value:
         WdfIoQueueDispatchParallel
         );
 
-    queueConfig.EvtIoDeviceControl = inpoutngEvtIoDeviceControl;
-    queueConfig.EvtIoStop = inpoutngEvtIoStop;
+    queueConfig.EvtIoDeviceControl = inpOutNgEvtIoDeviceControl;
+    queueConfig.EvtIoStop = inpOutNgEvtIoStop;
 
     status = WdfIoQueueCreate(
                  Device,
@@ -106,7 +106,7 @@ Return Value:
 }
 
 VOID
-inpoutngEvtIoDeviceControl(
+inpOutNgEvtIoDeviceControl(
     _In_ WDFQUEUE Queue,
     _In_ WDFREQUEST Request,
     _In_ size_t OutputBufferLength,
@@ -313,7 +313,7 @@ Return Value:
             }
             else
             {
-                memcpy(&Phys32Struct, inBuf, inBuffersize);
+                RtlCopyMemory(&Phys32Struct, inBuf, inBuffersize);
                 status = MapPhysicalMemoryToLinearSpace(Phys32Struct.pvPhysAddress,
                     Phys32Struct.dwPhysMemSizeInBytes,
                     &Phys32Struct.pvPhysMemLin,
@@ -321,7 +321,7 @@ Return Value:
 
                 if (NT_SUCCESS(status))
                 {
-                    memcpy(inBuf, &Phys32Struct, inBuffersize);
+                    RtlCopyMemory(inBuf, &Phys32Struct, inBuffersize);
                     opInfo =  inBuffersize;
                     status = STATUS_SUCCESS;
                 }
@@ -337,7 +337,7 @@ Return Value:
             }
             else
             {
-                memcpy(&Phys32Struct, inBuf, inBuffersize);
+                RtlCopyMemory(&Phys32Struct, inBuf, inBuffersize);
                 status = UnmapPhysicalMemory(Phys32Struct.PhysicalMemoryHandle, Phys32Struct.pvPhysMemLin);
                 opInfo = 0;
                 status = STATUS_SUCCESS;
@@ -357,7 +357,7 @@ Return Value:
     {
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Committing data to User: (P=0x%p, S=%d bytes), Status=0x%x, opSize=%d\n",
             outBuf, (int)outBuffersize, status, (UINT32)opInfo);
-        memcpy_s(outBuf, outBuffersize, &outData, opInfo);
+        RtlCopyMemory(outBuf, &outData, opInfo);
     }
 
     WdfRequestSetInformation(Request, opInfo);
@@ -367,7 +367,7 @@ Return Value:
 }
 
 VOID
-inpoutngEvtIoStop(
+inpOutNgEvtIoStop(
     _In_ WDFQUEUE Queue,
     _In_ WDFREQUEST Request,
     _In_ ULONG ActionFlags

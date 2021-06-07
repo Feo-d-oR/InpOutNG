@@ -44,6 +44,7 @@
     <DriverTargetPlatform>Desktop</DriverTargetPlatform>
     <SupportsPackaging>true</SupportsPackaging>
     <_NT_TARGET_VERSION>0x0601</_NT_TARGET_VERSION>
+    <OverrideDefaultRuntimeLibrary>true</OverrideDefaultRuntimeLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <TargetVersion>Windows7</TargetVersion>
@@ -54,6 +55,7 @@
     <DriverTargetPlatform>Desktop</DriverTargetPlatform>
     <SupportsPackaging>true</SupportsPackaging>
     <_NT_TARGET_VERSION>0x0601</_NT_TARGET_VERSION>
+    <OverrideDefaultRuntimeLibrary>true</OverrideDefaultRuntimeLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <TargetVersion>Windows7</TargetVersion>
@@ -64,6 +66,7 @@
     <DriverTargetPlatform>Desktop</DriverTargetPlatform>
     <SupportsPackaging>true</SupportsPackaging>
     <_NT_TARGET_VERSION>0x0601</_NT_TARGET_VERSION>
+    <OverrideDefaultRuntimeLibrary>true</OverrideDefaultRuntimeLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <TargetVersion>Windows7</TargetVersion>
@@ -74,6 +77,7 @@
     <DriverTargetPlatform>Desktop</DriverTargetPlatform>
     <SupportsPackaging>true</SupportsPackaging>
     <_NT_TARGET_VERSION>0x0601</_NT_TARGET_VERSION>
+    <OverrideDefaultRuntimeLibrary>true</OverrideDefaultRuntimeLibrary>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -86,20 +90,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(ConfigurationName)\</OutDir>
+    <IntDir>$(Platform)\$(ConfigurationName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(ConfigurationName)\</OutDir>
+    <IntDir>$(Platform)\$(ConfigurationName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>true</EnableInf2cat>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(ConfigurationName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
     <EnableInf2cat>true</EnableInf2cat>
     <Inf2CatUseLocalTime>true</Inf2CatUseLocalTime>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(ConfigurationName)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -176,6 +186,7 @@
   <ItemGroup>
     <ClCompile Include="device.c" />
     <ClCompile Include="driver.c" />
+    <ClCompile Include="irqhandler.c" />
     <ClCompile Include="queue.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -26,7 +26,7 @@ typedef struct S_InPortData
 
 #pragma pack()
 
-static ULONG DlPortRead(DWORD ctlCode, DWORD inSize, USHORT portAddr)
+static ULONG DlPortRead(_In_ DWORD ctlCode, _In_ DWORD inSize, _In_ USHORT portAddr)
 {
 	__declspec(align(8)) outPortData_t outData = { .addr = 0x0, .val.outLong = 0x0 };
 	__declspec(align(8)) inPortData_t inData = { .val.inLong = 0x0 };
@@ -44,38 +44,38 @@ static ULONG DlPortRead(DWORD ctlCode, DWORD inSize, USHORT portAddr)
 		&szReturned,
 		NULL);
 
-	if (opCode != ERROR_SUCCESS)
+	if (!opCode)
 	{
-		msg(M_WARN | M_ERRNO, L"PortReadError %u", opCode);
+		msg(M_WARN | M_ERRNO, L"PortReadError");
 	}
 
 	return inData.val.inLong;
 }
 
-SHORT _stdcall Inp32(short portAddr)
+SHORT _stdcall Inp32(_In_ short portAddr)
 {
 	return DlPortReadPortUshort(portAddr);
 }
 
-UCHAR _stdcall DlPortReadPortUchar(USHORT portAddr)
+UCHAR _stdcall DlPortReadPortUchar(_In_ USHORT portAddr)
 {
 	return (UCHAR)(DlPortRead((DWORD)IOCTL_READ_PORT_UCHAR, sizeof(UCHAR), portAddr) & 0x000000ff);
 }
 
-USHORT _stdcall DlPortReadPortUshort(USHORT portAddr)
+USHORT _stdcall DlPortReadPortUshort(_In_ USHORT portAddr)
 {
 	return (USHORT)(DlPortRead((DWORD)IOCTL_READ_PORT_USHORT, sizeof(USHORT), portAddr) & 0x0000ffff);
 }
 
-ULONG _stdcall DlPortReadPortUlong(ULONG portAddr)
+ULONG _stdcall DlPortReadPortUlong(_In_ ULONG portAddr)
 {
 	return (ULONG)DlPortRead((DWORD)IOCTL_READ_PORT_ULONG, sizeof(USHORT), (USHORT)portAddr);
 }
 
-static void DlPortWrite(DWORD ctlCode, DWORD dataSize, USHORT portAddr, ULONG portData)
+static void DlPortWrite(_In_ DWORD ctlCode, _In_ DWORD dataSize, _In_ USHORT portAddr, _In_ ULONG portData)
 {
 	__declspec(align(8)) outPortData_t outData = { .addr = 0x0, .val.outLong = 0x0 };
-	DWORD	opCode;
+	BOOL	opCode;
 	DWORD	szReturned;
 
 	outData.addr = portAddr;
@@ -90,28 +90,28 @@ static void DlPortWrite(DWORD ctlCode, DWORD dataSize, USHORT portAddr, ULONG po
 		&szReturned,
 		NULL);
 
-	if (opCode != ERROR_SUCCESS)
+	if (!opCode)
 	{
-		msg(M_WARN | M_ERRNO, L"PortWriteError %u", opCode);
+		msg(M_WARN | M_ERRNO, L"PortWriteError");
 	}
 }
 
-void _stdcall Out32(short portAddr, short portData)
+void _stdcall Out32(_In_ short portAddr, _In_ short portData)
 {
 	DlPortWritePortUchar(portAddr, (UCHAR)(portData & 0x00ff));
 }
 
-void _stdcall DlPortWritePortUchar(USHORT portAddr, UCHAR portData)
+void _stdcall DlPortWritePortUchar(_In_ USHORT portAddr, _In_ UCHAR portData)
 {
 	DlPortWrite((DWORD)IOCTL_WRITE_PORT_UCHAR, sizeof(UCHAR), portAddr, (ULONG)(portData & 0x000000ff));
 }
 
-void _stdcall DlPortWritePortUshort(USHORT portAddr, USHORT portData)
+void _stdcall DlPortWritePortUshort(_In_ USHORT portAddr, _In_  USHORT portData)
 {
 	DlPortWrite((DWORD)IOCTL_WRITE_PORT_USHORT, sizeof(USHORT), portAddr, (ULONG)(portData & 0x0000ffff));
 }
 
-void _stdcall DlPortWritePortUlong(ULONG portAddr, ULONG portData)
+void _stdcall DlPortWritePortUlong(_In_ ULONG portAddr, _In_  ULONG portData)
 {
 	DlPortWrite((DWORD)IOCTL_WRITE_PORT_ULONG, sizeof(ULONG), (USHORT)(portAddr & 0x0000ffff), portData);
 }

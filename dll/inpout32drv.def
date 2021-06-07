@@ -16,7 +16,3 @@ MapPhysToLin		  @11
 UnmapPhysicalMemory	  @12
 GetPhysLong			  @13
 SetPhysLong			  @14
-
-inpOutNGCreate		  @15
-outmsg				  @16
-outmsg_va		      @17

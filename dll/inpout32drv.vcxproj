@@ -49,9 +49,9 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v142</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -80,21 +80,27 @@
     <LinkIncremental>true</LinkIncremental>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <IncludePath>..\inpoutng;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <IncludePath>..\inpoutng;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <IncludePath>..\inpoutng;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <IncludePath>..\inpoutng;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)\build\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Midl>
@@ -115,7 +121,6 @@
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <SDLCheck>true</SDLCheck>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
@@ -155,9 +160,6 @@
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <SDLCheck>true</SDLCheck>
-      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -198,7 +200,6 @@
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <SDLCheck>true</SDLCheck>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
@@ -240,7 +241,6 @@
       <ProgramDataBaseFileName>$(IntDir)</ProgramDataBaseFileName>
       <WarningLevel>Level4</WarningLevel>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <SDLCheck>true</SDLCheck>
       <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <ResourceCompile>
@@ -262,6 +262,7 @@
     <PostBuildEvent />
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cabextract.c" />
     <ClCompile Include="drvinstall.c" />
     <ClCompile Include="drviomem.c" />
     <ClCompile Include="inpout32drv.c">
@@ -287,19 +288,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\drvinstall\disk1\inpoutng.cab" />
-    <None Include="..\inpoutng\Debug\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\Debug\x64\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\Release\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\Release\x64\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\x64\Debug\drvinstall\inpoutng.sys" />
-    <None Include="..\inpoutng\x64\Release\drvinstall\inpoutng.sys" />
-    <None Include="bin2.bin" />
-    <None Include="bin3.bin" />
-    <None Include="inpout32.sys" />
     <None Include="inpout32drv.def" />
-    <None Include="inpoutng.sys" />
-    <None Include="inpoutng64.sys" />
-    <None Include="inpoutx64.sys" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="inpout32drv.rc" />

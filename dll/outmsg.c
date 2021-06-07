@@ -4,8 +4,6 @@
 
 static TCHAR messageBuffer[MAX_PATH] = { 0x0 };
 
-#define ARRAY_SIZE(x) ( sizeof(x) / sizeof(x[0]) )
-
 void
 outmsg_va(const unsigned int flags, const TCHAR* format, va_list arglist)
 {
@@ -14,7 +12,7 @@ outmsg_va(const unsigned int flags, const TCHAR* format, va_list arglist)
 	charCount = _vswprintf_s_l(messageBuffer, MAX_PATH, format, NULL, arglist);
 	if (charCount < MAX_PATH)
 	{
-		_stprintf_s(&messageBuffer[charCount], (MAX_PATH - charCount), _T("\n"));
+		_tcscat_s(messageBuffer, MAX_PATH, L"\n");
 	}
 	OutputDebugString(messageBuffer);
 
