@@ -5,29 +5,33 @@
 #include "windows.h"
 #include "stdio.h"
 
-typedef void	(__stdcall *lpOut32)(short, short);
-typedef short	(__stdcall *lpInp32)(short);
+typedef void	(__stdcall *lpOut16)(USHORT, USHORT);
+typedef USHORT	(__stdcall *lpInp16)(USHORT);
 typedef BOOL	(__stdcall *lpIsInpOutDriverOpen)(void);
 typedef BOOL	(__stdcall *lpIsXP64Bit)(void);
 
 //Some global function pointers (messy but fine for an example)
-lpOut32 gfpOut32;
-lpInp32 gfpInp32;
+lpOut16 gfpOut16;
+lpInp16 gfpInp16;
 lpIsInpOutDriverOpen gfpIsInpOutDriverOpen;
 lpIsXP64Bit gfpIsXP64Bit;
 
-void Beep(unsigned int freq)
+const USHORT beeper = USHORT(0x42);
+const USHORT ctlPit = USHORT(0x43);
+const USHORT ctlKbd = USHORT(0x61);
+
+void Beep(USHORT freq)
 {
-	gfpOut32(0x43, 0xB6);
-	gfpOut32(0x42, (USHORT)(freq & 0xFF));
-	gfpOut32(0x42, (USHORT)(freq >> 9));
+	gfpOut16(ctlPit, USHORT(0xB6));
+	gfpOut16(beeper, USHORT(freq & USHORT(0xFF)));
+	gfpOut16(beeper, USHORT(freq >> 9));
 	Sleep(10);
-	gfpOut32(0x61, gfpInp32(0x61) | 0x03);
+	gfpOut16(ctlKbd, gfpInp16(ctlKbd) | USHORT(0x03));
 }
 
 void StopBeep()
 {
-	gfpOut32(0x61, (gfpInp32(0x61) & 0xFC));
+	gfpOut16(ctlKbd, (gfpInp16(ctlKbd) & USHORT(0xFC)));
 }
 
 int main(int argc, char* argv[])
@@ -45,8 +49,8 @@ int main(int argc, char* argv[])
 														//applicaiton then use InpOutx64.dll
 		if ( hInpOutDll != NULL )
 		{
-			gfpOut32 = (lpOut32)GetProcAddress(hInpOutDll, "Out32");
-			gfpInp32 = (lpInp32)GetProcAddress(hInpOutDll, "Inp32");
+			gfpOut16 = (lpOut16)GetProcAddress(hInpOutDll, "outp16");
+			gfpInp16 = (lpInp16)GetProcAddress(hInpOutDll, "inp16");
 			gfpIsInpOutDriverOpen = (lpIsInpOutDriverOpen)GetProcAddress(hInpOutDll, "IsInpOutDriverOpen");
 			gfpIsXP64Bit = (lpIsXP64Bit)GetProcAddress(hInpOutDll, "IsXP64Bit");
 
@@ -63,8 +67,8 @@ int main(int argc, char* argv[])
 
 				if(!strcmp(argv[1],"read"))
 				{
-					short iPort = (SHORT)atoi(argv[2]);
-					WORD wData = gfpInp32(iPort);	//Read the port
+					SHORT  iPort = (SHORT)atoi(argv[2]);
+					USHORT wData = gfpInp16(iPort);	//Read the port
 					printf("Data read from address %s is %d \n\n\n\n", argv[2], wData);
 				}
 				else if(!strcmp(argv[1],"write"))
@@ -76,9 +80,9 @@ int main(int argc, char* argv[])
 					}
 					else
 					{
-						short iPort = (SHORT)atoi(argv[2]);
-						WORD wData = (WORD)atoi(argv[3]);
-						gfpOut32(iPort, wData);
+						SHORT  iPort =  (SHORT)atoi(argv[2]);
+						USHORT wData = (USHORT)atoi(argv[3]);
+						gfpOut16(iPort, wData);
 						printf("data written to %s\n\n\n", argv[2]);
 					}
 				}

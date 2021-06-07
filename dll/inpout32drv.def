@@ -1,18 +1,11 @@
 EXPORTS
 
-Inp32				  @1
-Out32				  @2
-IsInpOutDriverOpen	  @3
+inp8                  @1
+outp8                 @2
+inp16                 @3
+outp16                @4
+inp32	              @5
+outp32				  @6
 
-DlPortReadPortUchar   @4
-DlPortWritePortUchar  @5
-DlPortReadPortUshort  @6
-DlPortWritePortUshort @7
-DlPortReadPortUlong   @8
-DlPortWritePortUlong  @9
-IsXP64Bit			  @10
-
-MapPhysToLin		  @11
-UnmapPhysicalMemory	  @12
-GetPhysLong			  @13
-SetPhysLong			  @14
+IsInpOutDriverOpen	  @7
+IsXP64Bit			  @8

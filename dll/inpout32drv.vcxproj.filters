@@ -30,9 +30,6 @@
     <ClCompile Include="drvinstall.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="drviomem.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="outmsg.c">
       <Filter>Source Files</Filter>
     </ClCompile>

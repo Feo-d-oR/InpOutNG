@@ -11,27 +11,17 @@ type
   PHandle = ^THandle;
 
 type // интерфейс библиотеки
-  TDlOut32 = procedure (portAddr : SmallInt; portData : SmallInt); stdcall;
-  TDlInp32 = function  (portAddr : SmallInt) : SmallInt; stdcall;
-
   //My extra functions for making life easy
   TDlDrvOpen = function : ByteBool; stdcall; //Returns TRUE if the InpOut driver was opened successfully
   TDlIs64Bit = function : ByteBool; stdcall; //Returns TRUE if the OS is 64bit (x64) Windows.
 
   //DLLPortIO function support
-  TDlReadPortUchar   = function (portAddr : Word) : Byte; stdcall;
-  TDlReadPortUshort  = function (portAddr : Word) : Word; stdcall;
-  TDlReadPortUlong   = function (portAddr : LongWord) : LongWord; stdcall;
-  TDlWritePortUchar  = procedure (portAddr:Word; portData : Byte); stdcall;
-  TDlWritePortUshort = procedure (portAddr:Word; portData : Word); stdcall;
-  TDlWritePortUlong  = procedure (portAddr:LongWord; portData : LongWord);stdcall;
-
-//WinIO function support (Untested and probably does NOT work - esp. on x64!)
-  TDlMapPhysToLin = function (pbPhysAddr : PByte; dwPhysSize : DWord; pPhysicalMemoryHandle: PHandle):PByte; stdcall;
-  TDlUnmapPhysicalMemory = function(PhysicalMemoryHandle : THandle; pbLinAddr : PByte):ByteBool;stdcall;
-  TDlGetPhysLong = function(pbPhysAddr : PByte; pdwPhysVal : PDWord) : ByteBool; stdcall;
-  TDlSetPhysLong = function(pbPhysAddr : PByte; dwPhysVal : DWord) : ByteBool; stdcall;
-
+  TDlInp8 =   function (portAddr : Word) : Byte; stdcall;
+  TDlInp16 =  function (portAddr : Word) : Word; stdcall;
+  TDlInp32 =  function (portAddr : Word) : LongWord; stdcall;
+  TDlOutp8 =  procedure(portAddr:Word; portData : Byte); stdcall;
+  TDlOutp16 = procedure(portAddr:Word; portData : Word); stdcall;
+  TDlOutp32 = procedure(portAddr:Word; portData : LongWord);stdcall;
 type
 
   { TForm1 }
@@ -43,22 +33,15 @@ type
     procedure FormCreate(Sender: TObject);
   private
     dllHandle : TLibHandle;
-    DlOut32 : TDlOut32;
-    DlInp32 : TDlInp32;
     DlDrvOpen : TDlDrvOpen;
     DlIs64Bit : TDlIs64Bit;
 
-    DlReadPortUchar   : TDlReadPortUchar;
-    DlReadPortUshort  : TDlReadPortUshort;
-    DlReadPortUlong   : TDlReadPortUlong;
-    DlWritePortUchar  : TDlWritePortUchar;
-    DlWritePortUshort : TDlWritePortUshort;
-    DlWritePortUlong  : TDlWritePortUlong;
-
-    DlMapPhysToLin        : TDlMapPhysToLin;
-    DlUnmapPhysicalMemory : TDlUnmapPhysicalMemory;
-    DlGetPhysLong         : TDlGetPhysLong;
-    DlSetPhysLong         : TDlSetPhysLong;
+    DlInp8   : TDlInp8;
+    DlInp16  : TDlInp16;
+    DlInp32  : TDlInp32;
+    DlOutp8  : TDlOutp8;
+    DlOutp16 : TDlOutp16;
+    DlOutp32 : TDlOutp32;
   private
     function GetProcFromDll (ADllHandle : THandle; procName : String) : Pointer;
     function FunctionsFound : Boolean;
@@ -88,23 +71,15 @@ begin
       MessageDlg('Dll not loaded!', 'Could not load DLL!', mtError, [ mbOK ], 'ErrorOnDllLoad');
       Exit;
     end;
-  DlOut32 := TDlOut32(GetProcFromDll(dllHandle, 'Out32'));
-  DlInp32 := TDlInp32(GetProcFromDll(dllHandle, 'Inp32'));
-
   DlDrvOpen := TDlDrvOpen(GetProcFromDll(dllHandle, 'IsInpOutDriverOpen'));
   DlIs64Bit := TDlIs64Bit(GetProcFromDll(dllHandle, 'IsXP64Bit'));
 
-  DlReadPortUchar  :=  TDlReadPortUchar(  GetProcFromDll(dllHandle, 'DlPortReadPortUchar'));
-  DlReadPortUshort :=  TDlReadPortUshort( GetProcFromDll(dllHandle, 'DlPortReadPortUshort'));
-  DlReadPortUlong  :=  TDlReadPortUlong(  GetProcFromDll(dllHandle, 'DlPortReadPortUlong'));
-  DlWritePortUchar :=  TDlWritePortUchar( GetProcFromDll(dllHandle, 'DlPortWritePortUchar'));
-  DlWritePortUshort := TDlWritePortUshort(GetProcFromDll(dllHandle, 'DlPortWritePortUshort'));
-  DlWritePortUlong :=  TDlWritePortUlong( GetProcFromDll(dllHandle, 'DlPortWritePortUlong'));
-
-  DlMapPhysToLin :=        TDlMapPhysToLin( GetProcFromDll(dllHandle, 'MapPhysToLin'));
-  DlUnmapPhysicalMemory := TDlUnmapPhysicalMemory(GetProcFromDll(dllHandle, 'UnmapPhysicalMemory'));
-  DlGetPhysLong := TDlGetPhysLong( GetProcFromDll(dllHandle, 'GetPhysLong'));
-  DlSetPhysLong := TDlSetPhysLong( GetProcFromDll(dllHandle, 'SetPhysLong'));
+  DlInp8   := TDlInp8(  GetProcFromDll(dllHandle, 'inp8'));
+  DlInp16  := TDlInp16( GetProcFromDll(dllHandle, 'inp16'));
+  DlInp32  := TDlInp32( GetProcFromDll(dllHandle, 'inp32'));
+  DlOutp8  := TDlOutp8( GetProcFromDll(dllHandle, 'outp8'));
+  DlOutp16 := TDlOutp16(GetProcFromDll(dllHandle, 'outp16'));
+  DlOutp32 := TDlOutp32(GetProcFromDll(dllHandle, 'outp32'));
 
   MessageDlg(Format('Everything is %s!', [BoolToStr(FunctionsFound, 'OK', 'crap')]),
              Format('Dll is %s and is %s bits', [ BoolToStr(DlDrvOpen(), 'loaded', 'NOT loaded'), BoolToStr(DlIs64Bit(), '64', '32')]),
@@ -128,8 +103,8 @@ begin
   TStart:=GetUNIXTime;
   for i:=1 to numCycles do
   begin
-    Val:=DlInp32($300);
-    DlOut32($300, Val);
+    Val:=DlInp16($300);
+    DlOutp16($300, Val);
   end;
   TEnd:=GetUNIXTime;
   dt:=TEnd-TStart;
@@ -157,13 +132,10 @@ end;
 
 function TForm1.FunctionsFound: Boolean;
 begin
-  Result := Assigned(DlOut32) and Assigned(DlInp32) and
-            Assigned(DlDrvOpen) and Assigned(DlIs64Bit) and
-            Assigned(DlReadPortUchar) and Assigned(DlWritePortUchar) and
-            Assigned(DlReadPortUshort) and Assigned(DlWritePortUshort) and
-            Assigned(DlReadPortUlong) and Assigned(DlWritePortUlong) and
-            Assigned(DlMapPhysToLin) and Assigned(DlUnmapPhysicalMemory) and
-            Assigned(DlGetPhysLong) and Assigned(DlSetPhysLong);
+  Result := Assigned(DlDrvOpen) and Assigned(DlIs64Bit) and
+            Assigned(DlInp8)    and Assigned(DlOutp8)   and
+            Assigned(DlInp16)   and Assigned(DlOutp16)  and
+            Assigned(DlInp32)   and Assigned(DlOutp32);
 end;
 
 end.

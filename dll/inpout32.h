@@ -2,28 +2,18 @@
 
 EXTERN_C_START
 
-//Functions exported from DLL.
-//For easy inclusion is user projects.
-//Original InpOut32 function support
-void	_stdcall Out32(_In_ SHORT portAddr, _In_ SHORT portData);
-SHORT	_stdcall Inp32(_In_ SHORT portAddr);
+// 3 группы функций: inp8/outp8, ...16, ...32, чтобы были однотипные названия.
+UCHAR   _stdcall inp8( _In_ USHORT portAddr);
+void    _stdcall outp8(_In_ USHORT portAddr, _In_ UCHAR  portData);
+
+USHORT  _stdcall inp16( _In_ USHORT portAddr);
+void    _stdcall outp16(_In_ USHORT portAddr, _In_ USHORT portData);
+
+ULONG	_stdcall inp32( _In_ USHORT  portAddr);
+void	_stdcall outp32(_In_ USHORT  portAddr, _In_ ULONG  portData);
 
 //My extra functions for making life easy
 BOOL	_stdcall IsInpOutDriverOpen( void );	//Returns TRUE if the InpOut driver was opened successfully
 BOOL	_stdcall IsXP64Bit( void );				//Returns TRUE if the OS is 64bit (x64) Windows.
-
-//DLLPortIO function support
-UCHAR   _stdcall DlPortReadPortUchar  (_In_ USHORT portAddr);
-USHORT  _stdcall DlPortReadPortUshort (_In_ USHORT portAddr);
-ULONG	_stdcall DlPortReadPortUlong  (_In_ ULONG  portAddr);
-void    _stdcall DlPortWritePortUchar (_In_ USHORT portAddr, _In_ UCHAR  portData);
-void    _stdcall DlPortWritePortUshort(_In_ USHORT portAddr, _In_ USHORT portData);
-void	_stdcall DlPortWritePortUlong (_In_ ULONG  portAddr, _In_ ULONG  portData);
-
-//WinIO function support (Untested and probably does NOT work - esp. on x64!)
-PBYTE	_stdcall MapPhysToLin(_In_ PBYTE pbPhysAddr, _In_ DWORD dwPhysSize, _Inout_ HANDLE *pPhysicalMemoryHandle);
-BOOL	_stdcall UnmapPhysicalMemory(_Inout_ HANDLE PhysicalMemoryHandle, _In_ PBYTE pbLinAddr);
-BOOL	_stdcall GetPhysLong(_In_ PBYTE pbPhysAddr, _Out_ PDWORD pdwPhysVal);
-BOOL	_stdcall SetPhysLong(_In_ PBYTE pbPhysAddr, _Out_ DWORD dwPhysVal);
 
 EXTERN_C_END

@@ -23,7 +23,7 @@
       <UseVersionInfo Value="True"/>
       <AutoIncrementBuild Value="True"/>
       <MinorVersionNr Value="1"/>
-      <BuildNr Value="16"/>
+      <BuildNr Value="20"/>
       <Language Value="0419"/>
       <Attributes pvaPreRelease="True" pvaPrivateBuild="True"/>
       <StringTable Comments="Отладка драйвера / библиотеки InpOutNG" CompanyName="Гвоздев Фёдор" InternalName="dllTest" LegalCopyright="© 2021, Гвоздев Фёдор" LegalTrademarks="Lugovaya development™" ProductName="Тест библиотеки/драйвера InpOutNG"/>

@@ -148,8 +148,6 @@ Return Value:
     size_t              inBuffersize = 0;
     size_t              outBuffersize = 0;
 
-    struct              tagPhys32Struct Phys32Struct;
-
     p_inPortData_t      inData = NULL;
     outPortData_t       outData = { .val.outLong = 0x0 };
 
@@ -304,47 +302,6 @@ Return Value:
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_ULONG (P=0x%04x, V=0x%08x), Status=0x%08x, Return=%d\n",
                 inData->addr, inData->val.inLong, status, (UINT32)opInfo);
             break;
-
-        case IOCTL_WINIO_MAPPHYSTOLIN:
-            if (!inBuffersize)
-            {
-                opInfo = 0;
-                status = STATUS_INVALID_PARAMETER;
-            }
-            else
-            {
-                RtlCopyMemory(&Phys32Struct, inBuf, inBuffersize);
-                status = MapPhysicalMemoryToLinearSpace(Phys32Struct.pvPhysAddress,
-                    Phys32Struct.dwPhysMemSizeInBytes,
-                    &Phys32Struct.pvPhysMemLin,
-                    &Phys32Struct.PhysicalMemoryHandle);
-
-                if (NT_SUCCESS(status))
-                {
-                    RtlCopyMemory(inBuf, &Phys32Struct, inBuffersize);
-                    opInfo =  inBuffersize;
-                    status = STATUS_SUCCESS;
-                }
-            }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WINIO_MAPPHYSTOLIN, Status=0x%08x, Return=%d\n", status, (UINT32)opInfo);
-            break;
-
-        case IOCTL_WINIO_UNMAPPHYSADDR:
-            if (!inBuffersize)
-            {
-                opInfo = 0;
-                status = STATUS_INVALID_PARAMETER;
-            }
-            else
-            {
-                RtlCopyMemory(&Phys32Struct, inBuf, inBuffersize);
-                status = UnmapPhysicalMemory(Phys32Struct.PhysicalMemoryHandle, Phys32Struct.pvPhysMemLin);
-                opInfo = 0;
-                status = STATUS_SUCCESS;
-            }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_UNMAPPHYSADDR, Status=0x%08x, Return=%d\n", status, (UINT32)opInfo);
-            break;
-
         default:
             opInfo = 0;
             status = STATUS_UNSUCCESSFUL;
