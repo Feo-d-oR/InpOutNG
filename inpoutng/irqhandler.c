@@ -1,6 +1,6 @@
 /*++
 
-Copyright (c) Microsoft Corporation.  All rights reserved.
+Copyright (c) Gvozdev A. Feodor.  All rights reserved.
 
     THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
     KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
@@ -27,7 +27,7 @@ Environment:
 
 NTSTATUS
 inpOutNgInterruptCreate(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevExt
 )
 /*++
 Routine Description:
@@ -110,13 +110,13 @@ Return Value:
 
 --*/
 {
-    PDEVICE_CONTEXT   devExt;
+    PINPOUTNG_CONTEXT   devExt;
     BOOLEAN           isRecognized = FALSE;
 
     UNREFERENCED_PARAMETER(MessageID);
 
     //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
-    //            "--> PLxInterruptHandler");
+    //            "--> InpOutNgInterruptHandler");
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
@@ -186,7 +186,7 @@ Return Value:
     }
 
     //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
-    //            "<-- PLxInterruptHandler");
+    //            "<-- InpOutNgInterruptHandler");
 
     return isRecognized;
 }
@@ -214,148 +214,24 @@ Return Value:
 
 --*/
 {
-    // NTSTATUS            status;
-    // WDFDMATRANSACTION   dmaTransaction;
-    PDEVICE_CONTEXT     devExt;
-    // BOOLEAN             writeInterrupt = FALSE;
-    // BOOLEAN             readInterrupt = FALSE;
-
     UNREFERENCED_PARAMETER(Device);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "--> EvtInterruptDpc");
+    PINPOUTNG_CONTEXT        devContext;
 
-    devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "--> %!FUNC!");
+
+    devContext = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
     //
     // Acquire this device's InterruptSpinLock.
     //
     WdfInterruptAcquireLock(Interrupt);
 
-#if 0
-    if ((devExt->IntCsr.bits.DmaChan0IntActive) &&
-        (devExt->Dma0Csr.bits.Done)) {
+    inpOutNgNotify(devContext);
 
-        //
-        // If Dma0 channel 0 (write) is interrupting and the
-        //  Done bit is set in the Dma0 CSR,
-        //  we're interrupting because a WRITE is complete.
-        // Clear the done bit and channel interrupting bit from
-        //  our copies...
-        //
-        devExt->IntCsr.bits.DmaChan0IntActive = FALSE;
-        devExt->Dma0Csr.uchar = 0;
+    devContext->InterruptCount++;
 
-        writeInterrupt = TRUE;
-    }
-
-    if ((devExt->IntCsr.bits.DmaChan1IntActive) &&
-        (devExt->Dma1Csr.bits.Done)) {
-
-        //
-        // If DMA channel 1 is interrupting and the
-        //  DONE bit is set in the DMA1 control/status
-        //  register, we're interrupting because a READ
-        //  is complete.
-        // Clear the done bit and channel interrupting bit from
-        //  our copies...
-        //
-        devExt->IntCsr.bits.DmaChan1IntActive = FALSE;
-        devExt->Dma0Csr.uchar = 0;
-
-        readInterrupt = TRUE;
-    }
-#endif
-
-    //
-    // Release our interrupt spinlock
-    //
-    WdfInterruptReleaseLock(Interrupt);
-
-#if 0
-    //
-    // Did a Write DMA complete?
-    //
-    if (writeInterrupt) {
-
-        BOOLEAN transactionComplete;
-
-        //
-        // Get the current Write DmaTransaction.
-        //
-        dmaTransaction = devExt->WriteDmaTransaction;
-
-        //
-        // Indicate this DMA operation has completed:
-        // This may drive the transfer on the next packet if
-        // there is still data to be transfered in the request.
-        //
-        transactionComplete = WdfDmaTransactionDmaCompleted(dmaTransaction,
-            &status);
-
-        if (transactionComplete) {
-            //
-            // Complete this DmaTransaction.
-            //
-            TraceEvents(TRACE_LEVEL_INFORMATION, DBG_DPC,
-                "Completing Write request in the DpcForIsr");
-
-            PLxWriteRequestComplete(dmaTransaction, status);
-
-        }
-    }
-
-    //
-    // Did a Read DMA complete?
-    //
-    if (readInterrupt) {
-
-        BOOLEAN                transactionComplete;
-        PDMA_TRANSFER_ELEMENT  dteVA;
-        size_t                 length;
-
-        //
-        // Get the current Read DmaTransaction.
-        //
-        dmaTransaction = devExt->ReadDmaTransaction;
-
-        //
-        // Only on Read-side --
-        //    Use "DMA Clear-Count Mode" to get complemetary
-        //    transferred byte count.
-        //
-        length = WdfDmaTransactionGetCurrentDmaTransferLength(dmaTransaction);
-
-        dteVA = (PDMA_TRANSFER_ELEMENT)devExt->ReadCommonBufferBase;
-
-        while (dteVA->DescPtr.LastElement == FALSE) {
-            length -= dteVA->TransferSize;
-            dteVA++;
-        }
-        length -= dteVA->TransferSize;
-
-        //
-        // Indicate this DMA operation has completed:
-        // This may drive the transfer on the next packet if
-        // there is still data to be transfered in the request.
-        //
-        transactionComplete =
-            WdfDmaTransactionDmaCompletedWithLength(dmaTransaction,
-                length,
-                &status);
-
-        if (transactionComplete) {
-            //
-            // Complete this DmaTransaction.
-            //
-            TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC,
-                "Completing Read request in the DpcForIsr");
-
-            PLxReadRequestComplete(dmaTransaction, status);
-
-        }
-    }
-#endif
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- EvtInterruptDpc");
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- %!FUNC!");
 
     return;
 }
@@ -377,10 +253,10 @@ Return Value:
     NTSTATUS
 --*/
 {
-    PDEVICE_CONTEXT  devExt;
+    PINPOUTNG_CONTEXT  devExt;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
-        "PLxEvtInterruptEnable: Interrupt 0x%p, Device 0x%p\n",
+        "%!FUNC!: Interrupt 0x%p, Device 0x%p\n",
         Interrupt, Device);
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
@@ -412,10 +288,10 @@ Return Value:
     NTSTATUS
 --*/
 {
-    PDEVICE_CONTEXT  devExt;
+    PINPOUTNG_CONTEXT  devExt;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
-        "PLxEvtInterruptDisable: Interrupt 0x%p, Device 0x%p\n",
+        "%!FUNC!: Interrupt 0x%p, Device 0x%p\n",
         Interrupt, Device);
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));

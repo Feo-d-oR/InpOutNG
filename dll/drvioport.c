@@ -1,31 +1,6 @@
 #include "StdAfx.h"
 #include "datadll.h"
 
-#pragma pack(push)
-#pragma pack(1)
-typedef struct S_OutPortData
-{
-	USHORT addr;
-	union U_outPortVal
-	{
-		UCHAR  outChar;
-		USHORT outShrt;
-		ULONG  outLong;
-	} val;
-} outPortData_t, * p_outPortData_t;
-
-typedef struct S_InPortData
-{
-	union U_inPortVal
-	{
-		UCHAR  inChar;
-		USHORT inShrt;
-		ULONG  inLong;
-	} val;
-} inPortData_t, * p_inPortData_t;
-
-#pragma pack()
-
 static ULONG DlPortRead(_In_ DWORD ctlCode, _In_ DWORD inSize, _In_ USHORT portAddr)
 {
 	__declspec(align(8)) outPortData_t outData = { .addr = 0x0, .val.outLong = 0x0 };

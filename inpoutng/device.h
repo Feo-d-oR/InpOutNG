@@ -26,27 +26,27 @@ typedef struct _DEVICE_CONTEXT
 {
     WDFDEVICE               Device;
 
-    // Following fields are specific to the hardware
-    // Configuration
-
-    WDFINTERRUPT            Interrupt;     // Returned by InterruptCreate
+    WDFINTERRUPT            Interrupt;      // Ёкземпл€р обработчика прерываний
 
     // IOCTL handling
-    WDFQUEUE                ControlQueue;
-    BOOLEAN                 RequireSingleTransfer;
+    WDFQUEUE                cntrlQueue;     // ќчередь обработки IOCtl запросов по умолчанию
+    WDFQUEUE                asyncQueue;     // ќчередь дл€ инверсной модели вызовов
 
     ULONG                   HwErrCount;
+    ULONG                   InterruptCount; // —чЄтчик обработанных прерываний
+
+    ULONG                   inpOutNgVersion;// Ќомер версии драйвера
     BOOLEAN                 ReadReady;
     BOOLEAN                 WriteReady;
 
-} DEVICE_CONTEXT, *PDEVICE_CONTEXT;
+} INPOUTNG_CONTEXT, *PINPOUTNG_CONTEXT;
 
 //
 // This macro will generate an inline function called inpOutNgGetContext
 // which will be used to get a pointer to the device context memory
 // in a type safe manner.
 //
-WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(DEVICE_CONTEXT, inpOutNgGetContext)
+WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(INPOUTNG_CONTEXT, inpOutNgGetContext)
 
 //
 // Function to initialize the device and its callbacks
@@ -59,38 +59,38 @@ inpOutNgCreateDevice(
 
 NTSTATUS
 inpOutNgPrepareHardware(
-    IN PDEVICE_CONTEXT DevExt,
+    IN PINPOUTNG_CONTEXT DevContext,
     IN WDFCMRESLIST    ResourcesTranslated
 );
 
 NTSTATUS
 inpOutNgInitializeDeviceContext(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevContext
 );
 
 VOID
 inpOutNgCleanupDeviceContext(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevContext
 );
 
 NTSTATUS
 inpOutNgInitWrite(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevContext
 );
 
 NTSTATUS
 inpOutNgInitRead(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevContext
 );
 
 VOID
 inpOutNgShutdown(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevContext
 );
 
 VOID
 inpOutNgHardwareReset(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevContext
 );
 
 EXTERN_C_END

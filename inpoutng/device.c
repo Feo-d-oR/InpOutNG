@@ -50,7 +50,7 @@ Return Value:
 --*/
 {
     WDF_OBJECT_ATTRIBUTES deviceAttributes;
-    PDEVICE_CONTEXT       deviceContext;
+    PINPOUTNG_CONTEXT       deviceContext;
     PNP_BUS_INFORMATION   busInfo;
     WDFDEVICE             device;
     NTSTATUS              status;
@@ -72,7 +72,7 @@ Return Value:
     WdfDeviceInitSetDeviceType(DeviceInit, FILE_DEVICE_BUS_EXTENDER);
     WdfDeviceInitSetExclusive(DeviceInit, TRUE);
 
-    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&deviceAttributes, DEVICE_CONTEXT);
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&deviceAttributes, INPOUTNG_CONTEXT);
 
     status = WdfDeviceCreate(&DeviceInit, &deviceAttributes, &device);
 
@@ -151,7 +151,7 @@ Return Value:
 
 NTSTATUS
 inpOutNgInitializeDeviceContext(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevExt
 )
 /*++
 Routine Description:
@@ -193,7 +193,7 @@ Return Value:
     WDF_IO_QUEUE_CONFIG_INIT(&queueConfig,
         WdfIoQueueDispatchSequential);
 
-    queueConfig.EvtIoWrite = PLxEvtIoWrite;
+    queueConfig.EvtIoWrite = inpOutNgEvtIoWrite;
 
     //
     // Static Driver Verifier (SDV) displays a warning if it doesn't find the 
@@ -245,7 +245,7 @@ Return Value:
     WDF_IO_QUEUE_CONFIG_INIT(&queueConfig,
         WdfIoQueueDispatchSequential);
 
-    queueConfig.EvtIoRead = PLxEvtIoRead;
+    queueConfig.EvtIoRead = inpOutNgEvtIoRead;
 
     //
     // By default, Static Driver Verifier (SDV) displays a warning if it 
@@ -297,7 +297,7 @@ Return Value:
     WDF_IO_QUEUE_CONFIG_INIT(&queueConfig,
         WdfIoQueueDispatchSequential);
 
-    queueConfig.EvtIoDeviceControl = PLxEvtIoDeviceControl;
+    queueConfig.EvtIoDeviceControl = InpOutNgEvtIoDeviceControl;
 
     status = WdfIoQueueCreate(DevExt->Device,
         &queueConfig,
@@ -342,7 +342,7 @@ Return Value:
 
 VOID
 inpOutNgCleanupDeviceContext(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevExt
 )
 /*++
 
@@ -397,7 +397,7 @@ Return Value:
 --*/
 {
     NTSTATUS          status = STATUS_SUCCESS;
-    PDEVICE_CONTEXT   devContext;
+    PINPOUTNG_CONTEXT   devContext;
 
     UNREFERENCED_PARAMETER(Resources);
 
@@ -443,7 +443,7 @@ Return Value:
 
 --*/
 {
-    PDEVICE_CONTEXT   devContext;
+    PINPOUTNG_CONTEXT   devContext;
     NTSTATUS status = STATUS_SUCCESS;
 
     UNREFERENCED_PARAMETER(ResourcesTranslated);
@@ -502,7 +502,7 @@ Return Value:
 
 --*/
 {
-    PDEVICE_CONTEXT   devContext;
+    PINPOUTNG_CONTEXT   devContext;
     NTSTATUS          status=STATUS_SUCCESS;
 
     UNREFERENCED_PARAMETER(PreviousState);
@@ -531,7 +531,7 @@ inpOutNgEvtDeviceD0Exit(
 
 Routine Description:
 
-    This routine undoes anything done in PLxEvtDeviceD0Entry.  It is called
+    This routine undoes anything done in InpOutNgEvtDeviceD0Entry.  It is called
     whenever the device leaves the D0 state, which happens when the device
     is stopped, when it is removed, and when it is powered off.
 
@@ -554,7 +554,7 @@ Return Value:
 
 --*/
 {
-    PDEVICE_CONTEXT   devContext;
+    PINPOUTNG_CONTEXT   devContext;
 
     PAGED_CODE();
 
@@ -600,7 +600,7 @@ Return Value:
 
 NTSTATUS
 inpOutNgSetIdleAndWakeSettings(
-    IN PDEVICE_CONTEXT FdoData
+    IN PINPOUTNG_CONTEXT FdoData
 )
 /*++
 Routine Description:
@@ -651,14 +651,14 @@ Return Value:
         return status;
     }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "<-- PLxSetIdleAndWakeSettings");
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "<-- InpOutNgSetIdleAndWakeSettings");
 
     return status;
 }
 
 NTSTATUS
 inpOutNgPrepareHardware(
-    IN PDEVICE_CONTEXT DevExt,
+    IN PINPOUTNG_CONTEXT DevExt,
     IN WDFCMRESLIST    ResourcesTranslated
 )
 /*++
@@ -847,7 +847,7 @@ Return Value:
 
 NTSTATUS
 inpOutNgInitWrite(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevExt
 )
 /*++
 Routine Description:
@@ -877,7 +877,7 @@ Return Value:
 
 NTSTATUS
 inpOutNgInitRead(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevExt
 )
 /*++
 Routine Description:
@@ -904,7 +904,7 @@ Return Value:
 
 VOID
 inpOutNgShutdown(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevExt
 )
 /*++
 
@@ -940,7 +940,7 @@ Return Value:
 
 VOID
 inpOutNgHardwareReset(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevExt
 )
 /*++
 Routine Description:
@@ -986,7 +986,7 @@ Return Value:
 
 --*/
 {
-    PDEVICE_CONTEXT devContext;
+    PINPOUTNG_CONTEXT devContext;
 
     PAGED_CODE();
 

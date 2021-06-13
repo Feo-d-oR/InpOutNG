@@ -8,7 +8,7 @@ Class = System
 ClassGuid = {4d36e97d-e325-11ce-bfc1-08002be10318}
 Provider = %ManufacturerName%
 CatalogFile = inpoutng.cat
-DriverVer = 2.0.0
+DriverVer = 2.0.1
 PnpLockdown = 1
 
 [DestinationDirs]
@@ -22,7 +22,7 @@ InpOutNg_Device_CoInstaller_CopyFiles = 11
 
 [SourceDisksFiles]
 inpoutng.sys  = 1,,
-WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll = 1 ; make sure the number matches with SourceDisksNames
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll = 1
 
 ;*****************************************
 ; Install Section
@@ -36,7 +36,7 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll = 1 ; make sure the number matches wi
 
 [InpOutNg_Device.NT]
 CopyFiles=Drivers_Dir
-;;LogConfig=lcIrq5,lcIrq7,lcIrq8,lcIrq11
+LogConfig=lcIrq5,lcIrq7,lcIrq8,lcIrq11
 
 [Drivers_Dir]
 inpoutng.sys
@@ -53,47 +53,47 @@ StartType      = 3               ; SERVICE_DEMAND_START
 ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
 ServiceBinary  = %12%\InpOutNg.sys
 
-;;[InpOutNg_Device.NT.FactDef]
-;;DisplayName=%IRQ5%
-;;ConfigPriority=FORCECONFIG
-;;IOConfig=300-340(fff::)
-;;IRQConfig=LS:5
-;;
-;;[lcIrq5]
-;;DisplayName=%IRQ5%
-;;ConfigPriority=FORCECONFIG
-;;IOConfig=300-340(fff::)
-;;IRQConfig=LS:5
-;;
-;;[lcIrq7]
-;;DisplayName=%IRQ7%
-;;ConfigPriority=FORCECONFIG
-;;IOConfig=300-340(fff::)
-;;IRQConfig=LS:7
-;;
-;;[lcIrq8]
-;;DisplayName=%IRQ8%
-;;ConfigPriority=FORCECONFIG
-;;IOConfig=300-340(fff::)
-;;IRQConfig=LS:8
-;;
-;;[lcIrq10]
-;;DisplayName=%IRQ10%
-;;ConfigPriority=FORCECONFIG
-;;IOConfig=300-340(fff::)
-;;IRQConfig=LS:11
-;;
-;;[lcIrq11]
-;;DisplayName=%IRQ11%
-;;ConfigPriority=FORCECONFIG
-;;IOConfig=300-340(fff::)
-;;IRQConfig=LS:11
-;;
-;;[InpOutNg_Device.NT.LogConfigOverride]
-;;DisplayName=%IRQ12%
-;;ConfigPriority=FORCECONFIG
-;;IOConfig=300-340(fff::)
-;;IRQConfig=LS:12
+[InpOutNg_Device.NT.FactDef]
+DisplayName=%IRQ5%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:5
+
+[lcIrq5]
+DisplayName=%IRQ5%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:5
+
+[lcIrq7]
+DisplayName=%IRQ7%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:7
+
+[lcIrq8]
+DisplayName=%IRQ8%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:8
+
+[lcIrq10]
+DisplayName=%IRQ10%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:11
+
+[lcIrq11]
+DisplayName=%IRQ11%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:11
+
+[InpOutNg_Device.NT.LogConfigOverride]
+DisplayName=%IRQ12%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:12
 
 ;
 ;--- InpOutNg_Device Coinstaller installation ------
@@ -122,9 +122,9 @@ ClassName = "System"
 DiskName = "InpOutNg Installation Disk"
 InpOutNg.DeviceDesc = "Чтение/запись портов ISA/PCI InpOutNg"
 InpOutNg.SVCDESC = "Служба InpOutNg"
-;;IRQ5 = "IRQ 5"
-;;IRQ7 = "IRQ 7"
-;;IRQ8 = "IRQ 8"
-;;IRQ10 = "IRQ 10"
-;;IRQ11 = "IRQ 11"
-;;IRQ12 = "IRQ 12"
+IRQ5 = "Use IRQ 5"
+IRQ7 = "Use IRQ 7"
+IRQ8 = "Use IRQ 8"
+IRQ10 = "Use IRQ 10"
+IRQ11 = "Use IRQ 11"
+IRQ12 = "Use IRQ 12"

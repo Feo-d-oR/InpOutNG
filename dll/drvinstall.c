@@ -18,57 +18,8 @@
 #endif
 
 #ifdef _MSC_VER
-#pragma warning(disable: 4152) /* EXIT_FATAL(flags) macro raises "warning C4127: conditional expression is constant" on each non M_FATAL invocation. */
+//#pragma warning(disable: 4152) /* EXIT_FATAL(flags) macro raises "warning C4127: conditional expression is constant" on each non M_FATAL invocation. */
 #endif
-
-/**
- * Dynamically load a library and find a function in it
- *
- * @param libname     Name of the library to load
- * @param funcname    Name of the function to find
- * @param m           Pointer to a module. On return this is set to the
- *                    the handle to the loaded library. The caller must
- *                    free it by calling FreeLibrary() if not NULL.
- *
- * @return            Pointer to the function
- *                    NULL on error -- use GetLastError() to find the error code.
- *
- **/
-static void*
-find_function(const WCHAR* libname, const char* funcname, HMODULE* m)
-{
-	WCHAR libpath[MAX_PATH];
-	void* fptr = NULL;
-
-	/* Make sure the dll is loaded from the system32 folder */
-	if (!GetSystemDirectoryW(libpath, ARRAY_SIZE(libpath)))
-	{
-		return NULL;
-	}
-
-	size_t len = ARRAY_SIZE(libpath) - wcslen(libpath) - 1;
-	if (len < wcslen(libname) + 1)
-	{
-		SetLastError(ERROR_INSUFFICIENT_BUFFER);
-		return NULL;
-	}
-	wcsncat_s(libpath, MAX_PATH, L"\\", len);
-	wcsncat_s(libpath, MAX_PATH, libname, len - 1);
-
-	*m = LoadLibraryW(libpath);
-	if (*m == NULL)
-	{
-		return NULL;
-	}
-	fptr = GetProcAddress(*m, funcname);
-	if (!fptr)
-	{
-		FreeLibrary(*m);
-		*m = NULL;
-		return NULL;
-	}
-	return fptr;
-}
 
 /**
  * Checks device install parameters if a system reboot is required.
@@ -129,25 +80,13 @@ inpOutNGCreate(
 	DWORD	drvInstFlags = DIIRFLAG_FORCE_INF;
 	BOOL	rebootRequired;
 	GUID    GUID_DEV_INPOUTNG = { 0xf3c34686, 0xe4e8, 0x43db, 0xb3, 0x8a, 0xad, 0xef, 0xc6, 0xda, 0x58, 0x51 };
-	// {f3c34686-e4e8-43db-b38a-adefc6da5851}
+							//	{ f3c34686-e4e8-43db-b38a-adefc6da5851 }
 	
 	ZeroMemory(drvPath, sizeof(drvPath));
 
 	_stprintf_s(drvPath, ARRAY_SIZE(drvPath), L"%s%s", cabPath, IsXP64Bit() ? L"x64" : L"x86");
 	
 	msg(M_DEBUG, L"%s::%d Trying to install InpOutNG driver from %s", TEXT(__FUNCTION__), __LINE__, drvPath);
-
-	/*
-	if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
-	{
-		dwResult = GetLastError();
-		msg(M_NONFATAL | M_ERRNO, L"%s::%d DiInstallDevice failed", TEXT(__FUNCTION__), __LINE__);
-		//goto cleanup_remove_device;
-	}
-	*pdrvState = dwResult == ERROR_SUCCESS ? DS_READY : DS_STARTED;
-	msg(M_DEBUG, L"Device installation finished, last Error code is 0x%x", dwResult);
-	*/
-	//return dwResult;
 
 	if (szHwId == NULL)
 	{
@@ -214,30 +153,6 @@ inpOutNGCreate(
 		goto cleanup_hDevInfoList;
 	}
 
-#if 0
-	/* Allow the device instance installation with the PnP Manager */
-	if (!SetupDiCallClassInstaller(
-		DIF_ALLOW_INSTALL,
-		hDevInfoList,
-		&devinfo_data))
-	{
-		dwResult = GetLastError();
-		msg(M_NONFATAL | M_ERRNO, L"%s::%d SetupDiCallClassInstaller(DIF_ALLOW_INSTALL) failed", TEXT(__FUNCTION__), __LINE__);
-		//goto cleanup_hDevInfoList;
-	}
-
-	/* Install device instance files with the PnP Manager */
-	if (!SetupDiCallClassInstaller(
-		DIF_INSTALLDEVICEFILES,
-		hDevInfoList,
-		&devinfo_data))
-	{
-		dwResult = GetLastError();
-		msg(M_NONFATAL | M_ERRNO, L"%s::%d SetupDiCallClassInstaller(DIF_INSTALLDEVICEFILES) failed", TEXT(__FUNCTION__), __LINE__);
-		//goto cleanup_hDevInfoList;
-	}
-#endif
-
 	/* Register device instance Co-installer files with the PnP Manager */
 	if (!SetupDiCallClassInstaller(
 		DIF_REGISTER_COINSTALLERS,
@@ -260,7 +175,6 @@ inpOutNGCreate(
 		//goto cleanup_hDevInfoList;
 	}
 
-#if 1
 	/* Install device instance with the PnP Manager */
 	if (!SetupDiCallClassInstaller(
 		DIF_NEWDEVICEWIZARD_FINISHINSTALL,
@@ -271,7 +185,6 @@ inpOutNGCreate(
 		msg(M_NONFATAL | M_ERRNO, L"%s::%d SetupDiCallClassInstaller(DIF_NEWDEVICEWIZARD_FINISHINSTALL) failed", TEXT(__FUNCTION__), __LINE__);
 		//goto cleanup_hDevInfoList;
 	}
-#endif
 
 	/* Register the device instance with the PnP Manager */
 	if (!SetupDiCallClassInstaller(
@@ -291,15 +204,6 @@ inpOutNGCreate(
 	 * by setting the drvinfo argument of DiInstallDevice as NULL. This
 	 * assumes a driver is already installed in the driver store.
 	 */
-/*
-	if (!DiInstallDevice(NULL, hDevInfoList, &devinfo_data, NULL, DIIDFLAG_INSTALLCOPYINFDRIVERS, &rebootRequired))
-	//if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
-	{
-		dwResult = GetLastError();
-		msg(M_NONFATAL | M_ERRNO, L"%s::%d DiInstallDevice failed", TEXT(__FUNCTION__), __LINE__);
-		goto cleanup_remove_device;
-	}
-*/	
 	if (!DiInstallDriver(NULL, drvPath, drvInstFlags, &rebootRequired))
 	{
 		dwResult = GetLastError();

@@ -17,73 +17,47 @@ Environment:
 #include "driver.h"
 #include "queue.tmh"
 
+/**
+* 
+*/
+
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (PAGE, inpOutNgQueueInitialize)
 #pragma alloc_text (PAGE, inpOutNgEvtIoDeviceControl)
+#pragma alloc_text (PAGE, inpOutNgNotify)
 #endif
-
-#pragma pack(push)
-#pragma pack(1)
-typedef struct S_InPortData
-{
-    USHORT addr;
-    union U_inPortVal
-    {
-        UCHAR  inChar;
-        USHORT inShrt;
-        ULONG  inLong;
-    } val;
-} inPortData_t, *p_inPortData_t;
-
-typedef struct S_OutPortData
-{
-    union U_outPortVal
-    {
-        UCHAR  outChar;
-        USHORT outShrt;
-        ULONG  outLong;
-    } val;
-} outPortData_t, * p_outPortData_t;
-#pragma pack()
-
+/**
+ * @brief Инициализация очередей обработки запросов
+ * @param Device экземпляр устройства, обслуживаемого драйвером
+ * @return \li STATUS_SUCCESS
+ *         \li 
+ * @detail The I/O dispatch callbacks for the frameworks device object
+ *         are configured in this function.
+ *
+ *    A single default I/O Queue is configured for parallel request
+ *    processing, and a driver context memory allocation is created
+ *    to hold our structure QUEUE_CONTEXT.
+*/
 NTSTATUS
 inpOutNgQueueInitialize(
     _In_ WDFDEVICE Device
     )
-/*++
-
-Routine Description:
-
-     The I/O dispatch callbacks for the frameworks device object
-     are configured in this function.
-
-     A single default I/O Queue is configured for parallel request
-     processing, and a driver context memory allocation is created
-     to hold our structure QUEUE_CONTEXT.
-
-Arguments:
-
-    Device - Handle to a framework device object.
-
-Return Value:
-
-    VOID
-
---*/
 {
-    WDFQUEUE queue;
-    NTSTATUS status;
+    NTSTATUS            status;
+    PINPOUTNG_CONTEXT   devContext;
     WDF_IO_QUEUE_CONFIG queueConfig;
 
     PAGED_CODE();
 
+    devContext = inpOutNgGetContext(Device);
+    
     //
-    // Configure a default queue so that requests that are not
-    // configure-fowarded using WdfDeviceConfigureRequestDispatching to goto
-    // other queues get dispatched here.
+    // Создание очереди событий «по умолчанию», в которой обрабатываются запросы,
+    // не сконфигурированные на диспетчеризацию через WdfDeviceConfigureRequestDispatching
+    // к следованию через прочие очереди.
     //
     WDF_IO_QUEUE_CONFIG_INIT_DEFAULT_QUEUE(
-         &queueConfig,
+        &queueConfig,
         WdfIoQueueDispatchParallel
         );
 
@@ -91,20 +65,68 @@ Return Value:
     queueConfig.EvtIoStop = inpOutNgEvtIoStop;
 
     status = WdfIoQueueCreate(
-                 Device,
-                 &queueConfig,
-                 WDF_NO_OBJECT_ATTRIBUTES,
-                 &queue
-                 );
+        Device,
+        &queueConfig,
+        WDF_NO_OBJECT_ATTRIBUTES,
+        &devContext->cntrlQueue
+        );
 
     if(!NT_SUCCESS(status)) {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "WdfIoQueueCreate failed %!STATUS!", status);
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE, "WdfDefaultQueueCreate failed %!STATUS!", status);
+        return status;
+    }
+
+    //
+    // Создание очереди для обработки запросов на асинхронное уведомление.
+    // Метод асинхронных уведомлений через инверсные функции обратного вызова
+    // (Inverted call model) описана в статье OSR по адресу
+    // https://www.osr.com/nt-insider/2013-issue1/inverted-call-model-kmdf/
+    // 
+    // В данную очередь будут помещаться запросы, завершающиеся по возникновению события
+    // (прерывания или настраиваемого)
+    //
+    WDF_IO_QUEUE_CONFIG_INIT(&queueConfig,
+        WdfIoQueueDispatchManual);
+
+    queueConfig.EvtIoStop = inpOutNgEvtIoStop;
+
+    status = WdfIoQueueCreate(devContext->Device,
+        &queueConfig,
+        WDF_NO_OBJECT_ATTRIBUTES,
+        &devContext->asyncQueue);
+
+    if (!NT_SUCCESS(status)) {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_QUEUE,
+            "WdfAsyncQueueCreate failed: %!STATUS!", status);
         return status;
     }
 
     return status;
 }
 
+static __inline ULONG checkInBuffer(_In_ size_t inSz)
+{
+    return (inSz >= sizeof(inPortData_t)) ? 1 : 0;
+}
+
+static __inline ULONG checkOutBuffer(_In_ size_t outSz)
+{
+    return (outSz >= sizeof(outPortData_t)) ? 1 : 0;
+}
+
+static __inline ULONG checkIOBuffers(_In_ size_t inSz, _In_ size_t outSz)
+{
+    return (checkInBuffer(inSz) && checkOutBuffer(outSz)) ? 1 : 0;
+}
+
+/**
+ * @brief Функция обработки входящих запросов на операции ввода/вывода
+ * @param Queue — Дескриптор обработчика очереди поступающих запросов
+ * @param Request — Дескриптор запроса
+ * @param OutputBufferLength — Размер выходного буфера в байтах
+ * @param InputBufferLength — Размер входного буфера в байтах
+ * @param IoControlCode — Код операции ввода/вывода
+*/
 VOID
 inpOutNgEvtIoDeviceControl(
     _In_ WDFQUEUE Queue,
@@ -113,30 +135,6 @@ inpOutNgEvtIoDeviceControl(
     _In_ size_t InputBufferLength,
     _In_ ULONG IoControlCode
     )
-/*++
-
-Routine Description:
-
-    This event is invoked when the framework receives IRP_MJ_DEVICE_CONTROL request.
-
-Arguments:
-
-    Queue -  Handle to the framework queue object that is associated with the
-             I/O request.
-
-    Request - Handle to a framework request object.
-
-    OutputBufferLength - Size of the output buffer in bytes
-
-    InputBufferLength - Size of the input buffer in bytes
-
-    IoControlCode - I/O control code.
-
-Return Value:
-
-    VOID
-
---*/
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, 
                 TRACE_QUEUE, 
@@ -153,11 +151,14 @@ Return Value:
 
     PULONG              inBuf = NULL;
     PULONG              outBuf = NULL;
-
+    PINPOUTNG_CONTEXT   devContext;
     PAGED_CODE();
 
-    /* Если размер входного буфера ноль, здесь делать нечего */
-    if (!InputBufferLength)
+    // Получение ссылки на контекст устройства через идентификатор очереди...
+    devContext = inpOutNgGetContext(WdfIoQueueGetDevice(Queue));
+
+    // Если размер входного буфера ноль и это не запрос версии, здесь делать нечего
+    if (!InputBufferLength && (IoControlCode != IOCTL_GET_DRVINFO))
     {
         WdfRequestComplete(Request, STATUS_INVALID_PARAMETER);
         return;
@@ -174,26 +175,21 @@ Return Value:
         status = STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    /* Проверить, что система правильно посчитала размер входного буфера */
+    // Проверить, что система правильно посчитала размер входного буфера
     ASSERT(inBuffersize >= InputBufferLength);
     
-    /* И указатель на него не нулевой */
+    // И указатель на него не нулевой
     ASSERT(inBuf != NULL);
 
-    /* «Сослать» на входной буфер типизированный указатель для последующего разбора */
+    // «Сослать» на входной буфер типизированный указатель для последующего разбора */
     inData = (p_inPortData_t)inBuf;
 
-    //
-    // Read the input buffer content.
-    // We are using the following function to print characters instead
-    // TraceEvents with %s format because the string we get may or
-    // may not be null terminated. The buffer may contain non-printable
-    // characters also.
-    //
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data from User : (0x%p) 0x%08x\n", inBuf, *inBuf);
 
-    /* Если длина выходного буфера не ноль, требуется получиьт указатель на него и проверить,
-        что система определила размер корректно и указатель не нулевой */
+    // 
+    // Если длина выходного буфера не ноль, требуется получить указатель на него и проверить,
+    // что система определила размер корректно и указатель не нулевой
+    //
     if (OutputBufferLength != 0)
     {
         status = WdfRequestRetrieveOutputBuffer(Request, 0, &outBuf, &outBuffersize);
@@ -207,8 +203,8 @@ Return Value:
 
     switch (IoControlCode)
     {
-        case IOCTL_READ_PORT_UCHAR:
-            if (!((inBuffersize >= 2) && (outBuffersize >= 1)))
+        case IOCTL_READ_PORT_UCHAR: {
+            if (!checkIOBuffers(inBuffersize, outBuffersize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -222,9 +218,10 @@ Return Value:
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_UCHAR (P=0x%04x, V=0x%02x), Status=0x%08x, Return=%d\n",
                 inData->addr, outData.val.outChar, status, (UINT32)opInfo);
             break;
+        }
 
-        case IOCTL_WRITE_PORT_UCHAR:
-            if (!(inBuffersize >= 3))
+        case IOCTL_WRITE_PORT_UCHAR: {
+            if (!checkInBuffer(inBuffersize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -238,9 +235,10 @@ Return Value:
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_UCHAR (P=0x%04x, V=0x%02x), Status=0x%08x, Return=%d\n",
                 inData->addr, inData->val.inChar, status, (UINT32)opInfo);
             break;
-
-        case IOCTL_READ_PORT_USHORT:
-            if (!((inBuffersize >= 2) && (outBuffersize >= 2)))
+        }
+               
+        case IOCTL_READ_PORT_USHORT: {
+            if (!checkIOBuffers(inBuffersize, outBuffersize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -254,9 +252,10 @@ Return Value:
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_USHORT (P=0x%04x, V=0x%04x), Status=0x%08x, Return=%d\n",
                 inData->addr, outData.val.outShrt, status, (UINT32)opInfo);
             break;
+        }
 
-        case IOCTL_WRITE_PORT_USHORT:
-            if (!(inBuffersize >= 4))
+        case IOCTL_WRITE_PORT_USHORT: {
+            if (!checkInBuffer(inBuffersize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -270,9 +269,10 @@ Return Value:
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_USHORT (P=0x%04x, V=0x%04x), Status=0x%08x, Return=%d\n",
                 inData->addr, inData->val.inShrt, status, (UINT32)opInfo);
             break;
+        }
 
-        case IOCTL_READ_PORT_ULONG:
-            if (!((inBuffersize >= 4) && (outBuffersize >= 4)))
+        case IOCTL_READ_PORT_ULONG: {
+            if (!checkIOBuffers(inBuffersize, outBuffersize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -286,9 +286,10 @@ Return Value:
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_READ_PORT_ULONG (P=0x%04x, V=0x%08x), Status=0x%08x, Return=%d\n",
                 inData->addr, outData.val.outLong, status, (UINT32)opInfo);
             break;
+        }
 
-        case IOCTL_WRITE_PORT_ULONG:
-            if (!(inBuffersize >= 8))
+        case IOCTL_WRITE_PORT_ULONG: {
+            if (!checkInBuffer(inBuffersize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -302,195 +303,299 @@ Return Value:
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Done IOCTL_WRITE_PORT_ULONG (P=0x%04x, V=0x%08x), Status=0x%08x, Return=%d\n",
                 inData->addr, inData->val.inLong, status, (UINT32)opInfo);
             break;
-        default:
+        }
+
+        case IOCTL_REGISTER_IRQ: {
+
+            //
+            // Возвращаемые значения кратны типу элемента задания,
+            // необходимо проверить, что выходной буфер кратен данному значению
+            // перед перенаправлением запроса в очередь ожидания.
+            // 
+            if (!(outBuffersize>=sizeof(port_task_t))) {
+
+                opInfo = 0;
+                status = STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            status = WdfRequestForwardToIoQueue(Request,
+                devContext->asyncQueue);
+
+            //
+            // Если запрос не может быть перенаправлен в очередь ожидания,
+            // требуется его завершить. Статус операции будет соответствовать коду ошибки
+            // перенаправления в очередь (WdfRequestForwardToIoQueue).
+            // 
+            if (!NT_SUCCESS(status)) {
+                opInfo = 0;
+                break;
+            }
+
+            //
+            // *** ЗАПРОС ПОСТАВЛЕН В ОЖИДАНИЕ ***
+            //     Статус операции будет выставлен по его завершению,
+            //     выход из данного обработчика.
+            //
+            return;
+        }
+
+        case IOCTL_TEST_ASYNC: {
+            inpOutNgNotify(devContext);
+            return;
+        }
+
+        case IOCTL_GET_DRVINFO: {
+            if (!(outBuffersize >= sizeof(outPortData_t))) {
+                opInfo = 0;
+                status = STATUS_BUFFER_TOO_SMALL;
+            }
+            else {
+                outData.val.outLong = devContext->inpOutNgVersion;
+                opInfo = sizeof(ULONG);
+                status = STATUS_SUCCESS;
+            }
+            break;
+        }
+        default: {
             opInfo = 0;
             status = STATUS_UNSUCCESSFUL;
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Unknown IOCTL 0x%08x, Status=0x%08x, Return=%d\n", IoControlCode, status, (UINT32)opInfo);
             break;
+        }
 
     }
     
-    if ((opInfo > 0) && (outBuffersize > 0))
+    if ((opInfo > 0) && (outBuffersize >= opInfo))
     {
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Committing data to User: (P=0x%p, S=%d bytes), Status=0x%x, opSize=%d\n",
             outBuf, (int)outBuffersize, status, (UINT32)opInfo);
         RtlCopyMemory(outBuf, &outData, opInfo);
     }
 
-    WdfRequestSetInformation(Request, opInfo);
-    WdfRequestComplete(Request, status);
+    WdfRequestCompleteWithInformation(Request,
+        status,
+        opInfo);
 
     return;
 }
 
+/**
+ * @brief This event is invoked for a power-managed queue before the device leaves the working state (D0).
+ * @param Queue —  Дескриптор обработчика очереди поступающих запросов
+ * @param Request — Дескриптор запроса
+ * @param ActionFlags — A bitwise OR of one or more WDF_REQUEST_STOP_ACTION_FLAGS-typed flags
+ *                      that identify the reason that the callback function is being called
+ *                      and whether the request is cancelable.
+ * @detail     
+ *         In most cases, the EvtIoStop callback function completes, cancels, or postpones
+ *         further processing of the I/O request.
+ *        
+ *         Typically, the driver uses the following rules:
+ *        
+ *         \li If the driver owns the I/O request, it calls WdfRequestUnmarkCancelable
+ *           (if the request is cancelable) and either calls WdfRequestStopAcknowledge
+ *           with a Requeue value of TRUE, or it calls WdfRequestComplete with a
+ *           completion status value of STATUS_SUCCESS or STATUS_CANCELLED.
+ *        
+ *           Before it can call these methods safely, the driver must make sure that
+ *           its implementation of EvtIoStop has exclusive access to the request.
+ *        
+ *           In order to do that, the driver must synchronize access to the request
+ *           to prevent other threads from manipulating the request concurrently.
+ *           The synchronization method you choose will depend on your driver's design.
+ *        
+ *           For example, if the request is held in a shared context, the EvtIoStop callback
+ *           might acquire an internal driver lock, take the request from the shared context,
+ *           and then release the lock. At this point, the EvtIoStop callback owns the request
+ *           and can safely complete or requeue the request.
+ *        
+ *         \li If the driver has forwarded the I/O request to an I/O target, it either calls
+ *           WdfRequestCancelSentRequest to attempt to cancel the request, or it postpones
+ *           further processing of the request and calls WdfRequestStopAcknowledge with
+ *           a Requeue value of FALSE.
+ *        
+ *         A driver might choose to take no action in EvtIoStop for requests that are
+ *         guaranteed to complete in a small amount of time.
+ *        
+ *         In this case, the framework waits until the specified request is complete
+ *         before moving the device (or system) to a lower power state or removing the device.
+ *         Potentially, this inaction can prevent a system from entering its hibernation state
+ *         or another low system power state. In extreme cases, it can cause the system
+ *         to crash with bugcheck code 9F.
+ *        
+ * 
+*/
 VOID
 inpOutNgEvtIoStop(
     _In_ WDFQUEUE Queue,
     _In_ WDFREQUEST Request,
     _In_ ULONG ActionFlags
 )
-/*++
-
-Routine Description:
-
-    This event is invoked for a power-managed queue before the device leaves the working state (D0).
-
-Arguments:
-
-    Queue -  Handle to the framework queue object that is associated with the
-             I/O request.
-
-    Request - Handle to a framework request object.
-
-    ActionFlags - A bitwise OR of one or more WDF_REQUEST_STOP_ACTION_FLAGS-typed flags
-                  that identify the reason that the callback function is being called
-                  and whether the request is cancelable.
-
-Return Value:
-
-    VOID
-
---*/
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, 
                 TRACE_QUEUE, 
                 "%!FUNC! Queue 0x%p, Request 0x%p ActionFlags %d", 
                 Queue, Request, ActionFlags);
 
-    //
-    // In most cases, the EvtIoStop callback function completes, cancels, or postpones
-    // further processing of the I/O request.
-    //
-    // Typically, the driver uses the following rules:
-    //
-    // - If the driver owns the I/O request, it calls WdfRequestUnmarkCancelable
-    //   (if the request is cancelable) and either calls WdfRequestStopAcknowledge
-    //   with a Requeue value of TRUE, or it calls WdfRequestComplete with a
-    //   completion status value of STATUS_SUCCESS or STATUS_CANCELLED.
-    //
-    //   Before it can call these methods safely, the driver must make sure that
-    //   its implementation of EvtIoStop has exclusive access to the request.
-    //
-    //   In order to do that, the driver must synchronize access to the request
-    //   to prevent other threads from manipulating the request concurrently.
-    //   The synchronization method you choose will depend on your driver's design.
-    //
-    //   For example, if the request is held in a shared context, the EvtIoStop callback
-    //   might acquire an internal driver lock, take the request from the shared context,
-    //   and then release the lock. At this point, the EvtIoStop callback owns the request
-    //   and can safely complete or requeue the request.
-    //
-    // - If the driver has forwarded the I/O request to an I/O target, it either calls
-    //   WdfRequestCancelSentRequest to attempt to cancel the request, or it postpones
-    //   further processing of the request and calls WdfRequestStopAcknowledge with
-    //   a Requeue value of FALSE.
-    //
-    // A driver might choose to take no action in EvtIoStop for requests that are
-    // guaranteed to complete in a small amount of time.
-    //
-    // In this case, the framework waits until the specified request is complete
-    // before moving the device (or system) to a lower power state or removing the device.
-    // Potentially, this inaction can prevent a system from entering its hibernation state
-    // or another low system power state. In extreme cases, it can cause the system
-    // to crash with bugcheck code 9F.
-    //
+
 
     return;
 }
 
-NTSTATUS MapPhysicalMemoryToLinearSpace(PVOID pPhysAddress,
-    SIZE_T PhysMemSizeInBytes,
-    PVOID* ppPhysMemLin,
-    HANDLE* pPhysicalMemoryHandle)
+/**
+ * @brief Функция обработчика очереди асинхронных уведомлений
+ * @param DevContext — Дескриптор данных устройства
+*/
+VOID
+inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
 {
-    UNICODE_STRING     PhysicalMemoryUnicodeString;
-    PVOID              PhysicalMemorySection = NULL;
-    OBJECT_ATTRIBUTES  ObjectAttributes;
-    PHYSICAL_ADDRESS   ViewBase;
-    NTSTATUS           ntStatus;
-    LARGE_INTEGER      pStartPhysAddress;
-    LARGE_INTEGER      pEndPhysAddress;
-    LARGE_INTEGER      MappingLength;
-    BOOLEAN            Result1, Result2;
-    ULONG              IsIOSpace;
-    unsigned char* pbPhysMemLin = NULL;
+    NTSTATUS      status;
+    ULONG_PTR     opInfo;
+    WDFREQUEST    notifyRequest;
 
-    RtlInitUnicodeString(&PhysicalMemoryUnicodeString, L"\\Device\\PhysicalMemory");
-    InitializeObjectAttributes(&ObjectAttributes,
-        &PhysicalMemoryUnicodeString,
-        OBJ_CASE_INSENSITIVE,
-        (HANDLE)NULL,
-        (PSECURITY_DESCRIPTOR)NULL);
+    PULONG        inBuf = NULL;
+    size_t        inBufferSize;
+    p_port_task_t inTask;
 
-    *pPhysicalMemoryHandle = NULL;
-    ntStatus = ZwOpenSection(pPhysicalMemoryHandle,
-        SECTION_ALL_ACCESS,
-        &ObjectAttributes);
+    PULONG        outBuf = NULL;
+    size_t        outBufferSize;
+    p_port_task_t outTask;
 
-    if (NT_SUCCESS(ntStatus))
-    {
-        ntStatus = ObReferenceObjectByHandle(*pPhysicalMemoryHandle,
-            SECTION_ALL_ACCESS,
-            (POBJECT_TYPE)NULL,
-            KernelMode,
-            &PhysicalMemorySection,
-            (POBJECT_HANDLE_INFORMATION)NULL);
+    size_t        taskSize;
+    size_t        i;
 
-        if (NT_SUCCESS(ntStatus))
+    status = WdfIoQueueRetrieveNextRequest(
+        DevContext->asyncQueue,
+        &notifyRequest);
+
+    //
+    // Проверка на наличие ожидающих запросов в очереди
+    // 
+    if (!NT_SUCCESS(status)) {
+
+        //
+        // Запросов нет. Успешно забрать запрос из очереди ожидания не вышло.
+        // Возможно, в очереди попросту нет запросов. В любом случае — на выход
+        // 
+        return;
+    }
+
+    //
+    // Обработка полученного из очереди запроса.
+    // 
+
+    //
+    // Получение указателей на буферы приёма / передачи информации из приложения.
+    // Аналогично с «общей» очередь.
+    // 
+
+    status = WdfRequestRetrieveInputBuffer(notifyRequest, 0, &inBuf, &inBufferSize);
+    //
+    // Проверка на наличие входного буфера
+    // 
+    if (!NT_SUCCESS(status)) {
+
+        //
+        // Буфер с заданием пуст, завершить запрос со статусом — нет ресурсов.
+        // 
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        opInfo = 0;
+        goto queue_completion;
+    }
+    else {
+        // Проверить, что размер входного буфера больше 32-х разрядов
+        ASSERT(inBufferSize >= sizeof(port_task_t));
+
+        // Проверить, что указатель на буфер не нулевой
+        ASSERT(inBuf != NULL);
+        
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Data from User : 0x%p, %d bytes\n", inBuf, (int)inBufferSize);
+        //
+        // We successfully retrieved a Request from the notification Queue
+        // AND we retrieved an output buffer into which to return some
+        // additional information.
+        // 
+        status = WdfRequestRetrieveOutputBuffer(notifyRequest, 0, &outBuf, &outBufferSize);
+        if (!NT_SUCCESS(status)) {
+            opInfo = 0;
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto queue_completion;
+        }
+
+        ASSERT(outBufferSize >= sizeof(port_task_t));
+        ASSERT(outBuf != NULL);
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Data to User : 0x%p, %d bytes\n", outBuf, (int)outBufferSize);
+        
+        if (outBufferSize < inBufferSize)
         {
-            pStartPhysAddress.QuadPart = (ULONGLONG)pPhysAddress;
-            pEndPhysAddress.QuadPart = pStartPhysAddress.QuadPart + (LONGLONG)PhysMemSizeInBytes;
-            IsIOSpace = 0;
-            Result1 = 1;//!!HalTranslateBusAddress(1, 0, pStartPhysAddress, &IsIOSpace, &pStartPhysAddress);
-            IsIOSpace = 0;
-            Result2 = 2;//!!HalTranslateBusAddress(1, 0, pEndPhysAddress, &IsIOSpace, &pEndPhysAddress);
+            opInfo = 0;
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto queue_completion;
+        }
 
-            if (Result1 && Result2)
-            {
+        inTask = (p_port_task_t)inBuf;
+        outTask = (p_port_task_t)outBuf;
 
-                MappingLength.QuadPart = pEndPhysAddress.QuadPart - pStartPhysAddress.QuadPart;
+        taskSize = inBufferSize / sizeof(port_task_t);
 
-                if (MappingLength.LowPart)
-                {
-                    // Let ZwMapViewOfSection pick a linear address
-#ifdef _AMD64_
-                    PhysMemSizeInBytes = MappingLength.QuadPart;
-#else
-                    PhysMemSizeInBytes = MappingLength.LowPart;
-#endif
-                    ViewBase = pStartPhysAddress;
-                    ntStatus = ZwMapViewOfSection(*pPhysicalMemoryHandle,
-                        (HANDLE)-1,
-                        &pbPhysMemLin,
-                        0L,
-                        PhysMemSizeInBytes,
-                        &ViewBase,
-                        &PhysMemSizeInBytes,
-                        ViewShare,
-                        0,
-                        PAGE_READWRITE | PAGE_NOCACHE);
-
-                    if (NT_SUCCESS(ntStatus))
-                    {
-                        pbPhysMemLin += (ULONG)pStartPhysAddress.LowPart - (ULONG)ViewBase.LowPart;
-                        *ppPhysMemLin = pbPhysMemLin;
-                    }
+        for (i = 0; i < taskSize; i++)
+        {
+            switch (inTask[i].taskOperation) {
+                case INPOUT_READ8: {
+                    outTask[i].taskOperation = INPOUT_READ8_ACK;
+                    outTask[i].taskData = __inbyte(inTask[i].taskPort);
+                    break;
+                }
+                case INPOUT_WRITE8: {
+                    outTask[i].taskOperation = INPOUT_WRITE8_ACK;
+                    __outbyte(inTask[i].taskPort, (BYTE)(inTask[i].taskData & 0x000000ff));
+                    outTask[i].taskData = 0x0;
+                    break;
+                }
+                case INPOUT_READ16: {
+                    outTask[i].taskOperation = INPOUT_READ8_ACK;
+                    outTask[i].taskData = __inword(inTask[i].taskPort);
+                    break;
+                }
+                case INPOUT_WRITE16: {
+                    outTask[i].taskOperation = INPOUT_WRITE8_ACK;
+                    __outword(inTask[i].taskPort, (USHORT)(inTask[i].taskData & 0x0000ffff));
+                    outTask[i].taskData = 0x0;
+                    break;
+                }
+                case INPOUT_READ32: {
+                    outTask[i].taskOperation = INPOUT_READ8_ACK;
+                    outTask[i].taskData = __indword(inTask[i].taskPort);
+                    break;
+                }
+                case INPOUT_WRITE32: {
+                    outTask[i].taskOperation = INPOUT_WRITE8_ACK;
+                    __outdword(inTask[i].taskPort, inTask[i].taskData);
+                    outTask[i].taskData = 0x0;
+                    break;
+                }
+                default: {
+                    outTask[i].taskOperation = INPOUT_ACK;
+                    outTask[i].taskPort = 0xAA;
+                    outTask[i].taskData = 0xA5;
+                    break;
                 }
             }
         }
+        //
+        // Complete the IOCTL_OSR_INVERT_NOTIFICATION with success, indicating
+        // we're returning a longword of data in the user's OutBuffer
+        // 
+        status = STATUS_SUCCESS;
+        opInfo = inBufferSize;
     }
 
-    if (!NT_SUCCESS(ntStatus))
-        ZwClose(*pPhysicalMemoryHandle);
+    //
+    // And now... NOTIFY the user about the event.  We do this just
+    // by completing the dequeued Request.
+    // 
+queue_completion:
+    WdfRequestCompleteWithInformation(notifyRequest, status, opInfo);
 
-    return ntStatus;
-}
-
-
-NTSTATUS UnmapPhysicalMemory(HANDLE PhysicalMemoryHandle, PVOID pPhysMemLin)
-{
-    NTSTATUS ntStatus;
-    ntStatus = ZwUnmapViewOfSection((HANDLE)-1, pPhysMemLin);
-    ZwClose(PhysicalMemoryHandle);
-    return ntStatus;
 }

@@ -24,14 +24,60 @@ Environment:
 
 EXTERN_C_START
 
-NTSTATUS UnmapPhysicalMemory(HANDLE PhysicalMemoryHandle, PVOID pPhysMemLin);
-NTSTATUS MapPhysicalMemoryToLinearSpace(PVOID pPhysAddress,
-    SIZE_T PhysMemSizeInBytes,
-    PVOID* ppPhysMemLin,
-    HANDLE* pPhysicalMemoryHandle);
+#define INPOUTNG_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 
+#ifdef _NTDDK_
+#pragma pack(push)
+#pragma pack(1)
+typedef struct S_PortTask
+{
+    USHORT taskOperation;
+    USHORT taskPort;
+    ULONG  taskData;
+} port_task_t, * p_port_task_t;
 
-//extern struct tagPhys32Struct Phys32Struct;
+typedef enum E_PORT_TASK
+{
+    INPOUT_NOTIFY = 0x00,
+    INPOUT_READ8 = 0x01,
+    INPOUT_READ16 = 0x02,
+    INPOUT_READ32 = 0x04,
+    INPOUT_WRITE8 = 0x08,
+    INPOUT_WRITE16 = 0x10,
+    INPOUT_WRITE32 = 0x20,
+    INPOUT_ACK = 0x80,
+    INPOUT_READ8_ACK = 0x81,
+    INPOUT_READ16_ACK = 0x82,
+    INPOUT_READ32_ACK = 0x84,
+    INPOUT_WRITE8_ACK = 0x88,
+    INPOUT_WRITE16_ACK = 0x90,
+    INPOUT_WRITE32_ACK = 0xa0
+} port_operation_t, * p_port_operation_t;
+
+typedef struct S_InPortData
+{
+    USHORT addr;
+    union U_inPortVal
+    {
+        UCHAR  inChar;
+        USHORT inShrt;
+        ULONG  inLong;
+    } val;
+} inPortData_t, * p_inPortData_t;
+
+typedef struct S_OutPortData
+{
+    union U_outPortVal
+    {
+        UCHAR  outChar;
+        USHORT outShrt;
+        ULONG  outLong;
+    } val;
+} outPortData_t, * p_outPortData_t;
+
+#pragma pack()
+#endif
+
 //
 // WDFDRIVER Events
 //
@@ -46,12 +92,6 @@ EVT_WDF_DEVICE_D0_EXIT inpOutNgEvtDeviceD0Exit;
 EVT_WDF_DEVICE_PREPARE_HARDWARE inpOutNgEvtDevicePrepareHardware;
 EVT_WDF_DEVICE_RELEASE_HARDWARE inpOutNgEvtDeviceReleaseHardware;
 
-/*
-EVT_WDF_IO_QUEUE_IO_READ inpOutNgEvtIoRead;
-EVT_WDF_IO_QUEUE_IO_WRITE inpOutNgEvtIoWrite;
-EVT_WDF_IO_QUEUE_IO_DEVICE_CONTROL inpOutNgEvtIoDeviceControl;
-*/
-
 EVT_WDF_INTERRUPT_ISR inpOutNgEvtInterruptIsr;
 EVT_WDF_INTERRUPT_DPC inpOutNgEvtInterruptDpc;
 EVT_WDF_INTERRUPT_ENABLE inpOutNgEvtInterruptEnable;
@@ -60,12 +100,12 @@ EVT_WDF_INTERRUPT_DISABLE inpOutNgEvtInterruptDisable;
 
 NTSTATUS
 inpOutNgInterruptCreate(
-    IN PDEVICE_CONTEXT DevExt
+    IN PINPOUTNG_CONTEXT DevExt
 );
 
 NTSTATUS
 inpOutNgSetIdleAndWakeSettings(
-    IN PDEVICE_CONTEXT FdoData
+    IN PINPOUTNG_CONTEXT FdoData
 );
 
 EXTERN_C_END

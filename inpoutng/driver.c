@@ -129,7 +129,7 @@ Return Value:
     WDF_PNPPOWER_EVENT_CALLBACKS pnpPowerCallbacks;
     WDF_OBJECT_ATTRIBUTES        attributes;
     WDFDEVICE                    device;
-    PDEVICE_CONTEXT              devContext = NULL;
+    PINPOUTNG_CONTEXT              devContext = NULL;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "--> %!FUNC!");
 
@@ -165,7 +165,7 @@ Return Value:
     //
     // Initialize Fdo Attributes.
     //
-    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attributes, DEVICE_CONTEXT);
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&attributes, INPOUTNG_CONTEXT);
     //
     // By opting for SynchronizationScopeDevice, we tell the framework to
     // synchronize callbacks events of all the objects directly associated
@@ -194,7 +194,7 @@ Return Value:
         return status;
     }
     //
-    // Get the DeviceExtension and initialize it. PLxGetDeviceContext is an inline function
+    // Get the DeviceExtension and initialize it. inpOutNgGetContext is an inline function
     // defined by WDF_DECLARE_CONTEXT_TYPE_WITH_NAME macro in the
     // private header file. This function will do the type checking and return
     // the device context. If you pass a wrong object a wrong object handle
@@ -203,6 +203,7 @@ Return Value:
     devContext = inpOutNgGetContext(device);
 
     devContext->Device = device;
+    devContext->inpOutNgVersion = INPOUTNG_VERSION(2, 0, 1);
 
     TraceEvents(TRACE_LEVEL_INFORMATION,
                 TRACE_DRIVER,

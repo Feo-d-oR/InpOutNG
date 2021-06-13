@@ -22,9 +22,8 @@ Environment:
 
 #define WPP_CONTROL_GUIDS                                               \
     WPP_DEFINE_CONTROL_GUID(                                            \
-        inpoutngTraceGuid, (aecbb916,711d,4b21,918f,43a488c5ef24),      \
+        inpOutNgTraceGuid, (aecbb916,711d,4b21,918f,43a488c5ef24),      \
                                                                         \
-        WPP_DEFINE_BIT(MYDRIVER_ALL_INFO)                               \
         WPP_DEFINE_BIT(TRACE_DRIVER)                                    \
         WPP_DEFINE_BIT(TRACE_DEVICE)                                    \
         WPP_DEFINE_BIT(TRACE_QUEUE)                                     \
@@ -33,6 +32,7 @@ Environment:
         WPP_DEFINE_BIT(TRACE_IRQ_DPC)                                   \
         WPP_DEFINE_BIT(TRACE_INIT)                                      \
         WPP_DEFINE_BIT(TRACE_CONFIG)                                    \
+        WPP_DEFINE_BIT(TRACE_ASYNC)                                     \
         )                             
 
 #define WPP_FLAG_LEVEL_LOGGER(flag, level)                                  \
@@ -61,7 +61,7 @@ Environment:
 // Trace function.
 //
 //begin_wpp config
-//FUNC Trace{FLAGS=MYDRIVER_ALL_INFO}(LEVEL, MSG, ...);
+//FUNC Trace{FLAGS=TRACE_DRIVER}(LEVEL, MSG, ...);
 //FUNC TraceEvents(LEVEL, FLAGS, MSG, ...);
 //end_wpp
 //
