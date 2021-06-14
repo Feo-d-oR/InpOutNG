@@ -1,11 +1,17 @@
 EXPORTS
 
-inp8                  @1
-outp8                 @2
-inp16                 @3
-outp16                @4
-inp32	              @5
-outp32				  @6
+inp8					@1
+outp8					@2
+inp16					@3
+outp16					@4
+inp32					@5
+outp32					@6
 
-IsInpOutDriverOpen	  @7
-IsXP64Bit			  @8
+IsInpOutDriverOpen		@7
+IsXP64Bit				@8
+
+registerWmNotify		@9
+getWmNotify				@10
+waitForIrq				@11
+requestIrqNotify		@12
+forceNotify				@13

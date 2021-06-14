@@ -21,9 +21,6 @@
     <ClCompile Include="osversion.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="StdAfx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="drvioport.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -34,6 +31,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cabextract.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="irqnotify.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
