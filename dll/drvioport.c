@@ -3,6 +3,7 @@
 
 static ULONG DlPortRead(_In_ DWORD ctlCode, _In_ DWORD inSize, _In_ USHORT portAddr)
 {
+	UNREFERENCED_PARAMETER(inSize);
 	__declspec(align(8)) outPortData_t outData = { .addr = 0x0, .val.outLong = 0x0 };
 	__declspec(align(8)) inPortData_t inData = { .val.inLong = 0x0 };
 	DWORD	opCode;
@@ -13,9 +14,9 @@ static ULONG DlPortRead(_In_ DWORD ctlCode, _In_ DWORD inSize, _In_ USHORT portA
 	opCode = DeviceIoControl(drvHandle,
 		ctlCode,
 		&outData,
-		sizeof(outData.addr),
+		sizeof(outPortData_t),
 		&inData,
-		inSize,
+		sizeof(inPortData_t),
 		&szReturned,
 		NULL);
 
@@ -44,6 +45,7 @@ ULONG _stdcall inp32(_In_ USHORT portAddr)
 
 static void DlPortWrite(_In_ DWORD ctlCode, _In_ DWORD dataSize, _In_ USHORT portAddr, _In_ ULONG portData)
 {
+	UNREFERENCED_PARAMETER(dataSize);
 	__declspec(align(8)) outPortData_t outData = { .addr = 0x0, .val.outLong = 0x0 };
 	BOOL	opCode;
 	DWORD	szReturned;
@@ -54,7 +56,7 @@ static void DlPortWrite(_In_ DWORD ctlCode, _In_ DWORD dataSize, _In_ USHORT por
 	opCode = DeviceIoControl(drvHandle,
 		ctlCode,
 		&outData,
-		sizeof(outData.addr) + dataSize,
+		sizeof(outPortData_t),
 		NULL,
 		0,
 		&szReturned,

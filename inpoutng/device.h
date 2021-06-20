@@ -38,6 +38,9 @@ typedef struct _DEVICE_CONTEXT
     ULONG                   inpOutNgVersion;// Номер версии драйвера
     BOOLEAN                 ReadReady;
     BOOLEAN                 WriteReady;
+    BOOLEAN                 drainIrq;
+    WDFTIMER                dpcTimer;
+    WDF_TIMER_CONFIG        timerConfig;
 
 } INPOUTNG_CONTEXT, *PINPOUTNG_CONTEXT;
 

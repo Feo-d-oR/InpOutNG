@@ -56,7 +56,7 @@ Return Value:
     InterruptConfig.EvtInterruptDisable = inpOutNgEvtInterruptDisable;
 
     // JOHNR: Enable testing of the DpcForIsr Synchronization
-    InterruptConfig.AutomaticSerialization = TRUE;
+    //InterruptConfig.AutomaticSerialization = TRUE;
 
     InterruptConfig.ShareVector = TRUE;
 
@@ -111,84 +111,19 @@ Return Value:
 --*/
 {
     PINPOUTNG_CONTEXT   devExt;
-    BOOLEAN           isRecognized = FALSE;
+    BOOLEAN             irqQueued;
 
     UNREFERENCED_PARAMETER(MessageID);
 
-    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
-    //            "--> InpOutNgInterruptHandler");
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "--> InpOutNgInterruptHandler");
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
-    //
-    // Read the Interrupt CSR register (INTCSR)
-    //
+    irqQueued = WdfInterruptQueueDpcForIsr(devExt->Interrupt);
 
-#if 0
-    //
-    // Is DMA channel 0 (Write-side) Active?
-    //
-    if (intCsr.bits.DmaChan0IntActive) {
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "<-- InpOutNgInterruptHandler");
 
-        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
-            " Interrupt for DMA Channel 0 (write)");
-
-        devExt->IntCsr.bits.DmaChan0IntActive = TRUE;
-
-        //
-        // Clear this interrupt.
-        //
-        devExt->Dma0Csr.uchar =
-            READ_REGISTER_UCHAR((PUCHAR)&devExt->Regs->Dma0_Csr);
-
-        devExt->Dma0Csr.bits.Clear = TRUE;
-
-        WRITE_REGISTER_UCHAR((PUCHAR)&devExt->Regs->Dma0_Csr,
-            devExt->Dma0Csr.uchar);
-
-        isRecognized = TRUE;
-    }
-
-    //
-    // Is DMA channel 1 (Read-side) Active?
-    //
-    if (intCsr.bits.DmaChan1IntActive) {
-
-        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
-            " Interrupt for DMA Channel 1 (read)");
-
-        devExt->IntCsr.bits.DmaChan1IntActive = TRUE;
-
-        //
-        // Clear this interrupt.
-        //
-        devExt->Dma1Csr.uchar =
-            READ_REGISTER_UCHAR((PUCHAR)&devExt->Regs->Dma1_Csr);
-
-        devExt->Dma1Csr.bits.Clear = TRUE;
-
-        WRITE_REGISTER_UCHAR((PUCHAR)&devExt->Regs->Dma1_Csr,
-            devExt->Dma1Csr.uchar);
-
-        isRecognized = TRUE;
-    }
-#endif
-
-    if ((isRecognized) 
-/*        &&
-        ((devExt->Dma0Csr.bits.Done) ||
-            (devExt->Dma1Csr.bits.Done))*/
-        ) {
-        //
-        // A read or a write or both is done. Queue a DPC.
-        //
-        WdfInterruptQueueDpcForIsr(devExt->Interrupt);
-    }
-
-    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
-    //            "<-- InpOutNgInterruptHandler");
-
-    return isRecognized;
+    return irqQueued;
 }
 
 VOID
@@ -231,7 +166,9 @@ Return Value:
 
     devContext->InterruptCount++;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- %!FUNC!");
+    WdfInterruptReleaseLock(Interrupt);
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- %!FUNC!, %d", devContext->InterruptCount);
 
     return;
 }
@@ -260,6 +197,7 @@ Return Value:
         Interrupt, Device);
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
+
 /*
     intCSR.ulong = READ_REGISTER_ULONG((PULONG)&devExt->Regs->Int_Csr);
 
@@ -295,13 +233,19 @@ Return Value:
         Interrupt, Device);
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
-/*
-    intCSR.ulong = READ_REGISTER_ULONG((PULONG)&devExt->Regs->Int_Csr);
 
-    intCSR.bits.PciIntEnable = FALSE;
+    WdfTimerStop(devExt->dpcTimer, FALSE);
 
-    WRITE_REGISTER_ULONG((PULONG)&devExt->Regs->Int_Csr,
-        intCSR.ulong);
-*/
     return STATUS_SUCCESS;
+}
+
+VOID inpOutNgOnTimer(WDFTIMER timer)
+{
+    PINPOUTNG_CONTEXT devContext;
+
+    devContext = inpOutNgGetContext(WdfTimerGetParentObject(timer));
+    if (devContext->drainIrq) {
+        inpOutNgNotify(devContext);
+    }
+    return;
 }

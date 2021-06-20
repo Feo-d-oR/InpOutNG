@@ -96,7 +96,7 @@ EVT_WDF_INTERRUPT_ISR inpOutNgEvtInterruptIsr;
 EVT_WDF_INTERRUPT_DPC inpOutNgEvtInterruptDpc;
 EVT_WDF_INTERRUPT_ENABLE inpOutNgEvtInterruptEnable;
 EVT_WDF_INTERRUPT_DISABLE inpOutNgEvtInterruptDisable;
-
+EVT_WDF_TIMER inpOutNgOnTimer;
 
 NTSTATUS
 inpOutNgInterruptCreate(

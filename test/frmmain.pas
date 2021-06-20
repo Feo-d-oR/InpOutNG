@@ -5,34 +5,38 @@ unit frmmain;
 interface
 
 uses
-  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Buttons, StdCtrls;
+  Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Buttons, StdCtrls, inpout32dll;
 
 type
-  PHandle = ^THandle;
 
-type // интерфейс библиотеки
-  //My extra functions for making life easy
-  TDlDrvOpen = function : ByteBool; stdcall; //Returns TRUE if the InpOut driver was opened successfully
-  TDlIs64Bit = function : ByteBool; stdcall; //Returns TRUE if the OS is 64bit (x64) Windows.
+  { IrqWait }
+  IrqWait = class(TThread)
+    constructor Create(TotalTasks:integer; AOwner: TObject; FuncPtr:TDlIrqWait);
+  private
+    numTasks     : integer;
+    NotifyStatus : LongWord;
+    Owner        : TObject;
+    DLIrqWait    : TDLIrqWait;
+  protected
+    procedure Execute; override;
+  end;
 
-  //DLLPortIO function support
-  TDlInp8 =   function (portAddr : Word) : Byte; stdcall;
-  TDlInp16 =  function (portAddr : Word) : Word; stdcall;
-  TDlInp32 =  function (portAddr : Word) : LongWord; stdcall;
-  TDlOutp8 =  procedure(portAddr:Word; portData : Byte); stdcall;
-  TDlOutp16 = procedure(portAddr:Word; portData : Word); stdcall;
-  TDlOutp32 = procedure(portAddr:Word; portData : LongWord);stdcall;
 type
 
   { TForm1 }
 
   TForm1 = class(TForm)
+    eNumTasks: TEdit;
     eNumRuns: TEdit;
     btnRunTest: TSpeedButton;
+    btnSetIrqWait: TSpeedButton;
+    btnSendNotify: TSpeedButton;
     procedure btnRunTestClick(Sender: TObject);
+    procedure btnSendNotifyClick(Sender: TObject);
+    procedure btnSetIrqWaitClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure IrqDone(Sender: TObject);
   private
-    dllHandle : TLibHandle;
     DlDrvOpen : TDlDrvOpen;
     DlIs64Bit : TDlIs64Bit;
 
@@ -42,8 +46,20 @@ type
     DlOutp8  : TDlOutp8;
     DlOutp16 : TDlOutp16;
     DlOutp32 : TDlOutp32;
+
+    DlRegNotify  : TDlRegNotify;
+    DlGetNotify  : TDlGetNotify;
+
+    DlIrqWait    : TDlIrqWait;
+    DLIrqRequest : TDLIrqRequest;
+    DLForceNotify: TDLForceNotify;
+
+    TStartWait   : double;
+    TEndWait     : double;
+    NotifyCode   : LongWord;
+    WaitThread   : IrqWait;
   private
-    function GetProcFromDll (ADllHandle : THandle; procName : String) : Pointer;
+
     function FunctionsFound : Boolean;
   public
 
@@ -52,40 +68,71 @@ type
 var
   Form1: TForm1;
 
-const
-  DllName = 'inpout32.dll';
-
 implementation
 
-uses libTime;
+uses libTime, Windows;
 
 {$R *.lfm}
+
+var
+  PrevWndProc: WNDPROC;
+
+{ Message Handler}
+function WndCallback(Ahwnd: HWND; uMsg: UINT; wParam: WParam; lParam: LParam):LRESULT; stdcall;
+begin
+  if uMsg = Form1.NotifyCode then
+  begin
+    Form1.TEndWait:=GetUNIXTime;
+    ShowMessage('Message was Received!');
+  end;
+  // If Msg is not WM_DEVICECHANGE pass the Msg
+  Result:= CallWindowProc(WNDPROC(PrevWndProc),Ahwnd,uMsg,WParam,LParam);
+end;
 
 { TForm1 }
 procedure TForm1.FormCreate(Sender: TObject);
 begin
-  dllHandle := LoadLibrary(DllName);
-  if dllHandle = NilHandle
+  if not DllLoad then Application.Terminate;
+  DlDrvOpen := TDlDrvOpen(GetProcFromDll('IsInpOutDriverOpen'));
+  DlIs64Bit := TDlIs64Bit(GetProcFromDll('IsXP64Bit'));
+
+  DlInp8        := TDlInp8(  GetProcFromDll('inp8'));
+  DlInp16       := TDlInp16( GetProcFromDll('inp16'));
+  DlInp32       := TDlInp32( GetProcFromDll('inp32'));
+  DlOutp8       := TDlOutp8( GetProcFromDll('outp8'));
+  DlOutp16      := TDlOutp16(GetProcFromDll('outp16'));
+  DlOutp32      := TDlOutp32(GetProcFromDll('outp32'));
+  DlRegNotify   := TDlRegNotify(GetProcFromDll('registerWmNotify'));
+  DlGetNotify   := TDlGetNotify(GetProcFromDll('getWmNotify'));
+  DlIrqWait     := TDlIrqWait(GetProcFromDll('waitForIrq'));
+  DlIrqRequest  := TDlIrqRequest(GetProcFromDll('requestIrqNotify'));
+  DlForceNotify := TDlForceNotify(GetProcFromDll('forceNotify'));
+
+  if Assigned(DlRegNotify)
   then
     begin
-      MessageDlg('Dll not loaded!', 'Could not load DLL!', mtError, [ mbOK ], 'ErrorOnDllLoad');
-      Exit;
+      DlRegNotify();
+      PrevWndProc:= {%H-}Windows.WNDPROC(SetWindowLongPtr(Self.Handle,GWL_WNDPROC,{%H-}PtrInt(@WndCallback)));
     end;
-  DlDrvOpen := TDlDrvOpen(GetProcFromDll(dllHandle, 'IsInpOutDriverOpen'));
-  DlIs64Bit := TDlIs64Bit(GetProcFromDll(dllHandle, 'IsXP64Bit'));
-
-  DlInp8   := TDlInp8(  GetProcFromDll(dllHandle, 'inp8'));
-  DlInp16  := TDlInp16( GetProcFromDll(dllHandle, 'inp16'));
-  DlInp32  := TDlInp32( GetProcFromDll(dllHandle, 'inp32'));
-  DlOutp8  := TDlOutp8( GetProcFromDll(dllHandle, 'outp8'));
-  DlOutp16 := TDlOutp16(GetProcFromDll(dllHandle, 'outp16'));
-  DlOutp32 := TDlOutp32(GetProcFromDll(dllHandle, 'outp32'));
-
+  if Assigned(DlGetNotify)
+  then NotifyCode:=DlGetNotify();
   MessageDlg(Format('Everything is %s!', [BoolToStr(FunctionsFound, 'OK', 'crap')]),
-             Format('Dll is %s and is %s bits', [ BoolToStr(DlDrvOpen(), 'loaded', 'NOT loaded'), BoolToStr(DlIs64Bit(), '64', '32')]),
+             Format('Dll is %s and is %s bits%sMessage code is 0x%4x',
+                    [ BoolToStr(DlDrvOpen(), 'loaded', 'NOT loaded'),
+                      BoolToStr(DlIs64Bit(), '64', '32'),
+                      LineEnding, DlGetNotify() ]),
              mtInformation,
              [mbOK],
              'FormLoadComplete');
+end;
+
+procedure TForm1.IrqDone(Sender: TObject);
+begin
+  ShowMessage(Format('IrqWait thread exited. Check your data, master...%s'+
+                     'Time spend in thread is %.9f',
+                     [LineEnding, TEndWait-TStartWait]));
+  WaitThread.Destroy;
+  WaitThread:=NIL;
 end;
 
 procedure TForm1.btnRunTestClick(Sender: TObject);
@@ -112,30 +159,70 @@ begin
                      [numCycles, LineEnding, dt, dt/numCycles]));
 end;
 
-function TForm1.GetProcFromDll(ADllHandle: THandle; procName: String): Pointer;
+procedure TForm1.btnSendNotifyClick(Sender: TObject);
 begin
-  Result := NIL;
-  if ADllHandle = NilHandle
+  DLForceNotify();
+end;
+
+procedure TForm1.btnSetIrqWaitClick(Sender: TObject);
+var
+  numTasks : Integer = 0;
+begin
+  TryStrToInt(eNumTasks.Text, numTasks);
+  if numTasks<=0
+  then begin ShowMessage('numTasks not recognized'); Exit; end;
+
+  if not Assigned(WaitThread)
   then
     begin
-     MessageDlg('Dll is NIL!', 'Null pointer supplied!', mtError, [ mbOK ], 'ErrorOnDllHandlePass');
-     Exit;
+      WaitThread:=IrqWait.Create(numTasks, Self, DlIrqWait);
+      WaitThread.OnTerminate:=@IrqDone;
     end;
-  Result:=GetProcedureAddress(dllHandle, procName);
-  if (Result = NIL)
-  then
-    begin
-     MessageDlg('Function not found!', Format('Object %s not found in DLL!', [procName]), mtError, [ mbOK ], 'ErrorOnDllFuncSearch');
-     Exit;
-    end;
+  (*
+  Delay(0.020);
+  DLForceNotify();
+  *)
 end;
 
 function TForm1.FunctionsFound: Boolean;
 begin
-  Result := Assigned(DlDrvOpen) and Assigned(DlIs64Bit) and
-            Assigned(DlInp8)    and Assigned(DlOutp8)   and
-            Assigned(DlInp16)   and Assigned(DlOutp16)  and
-            Assigned(DlInp32)   and Assigned(DlOutp32);
+  Result := Assigned(DlDrvOpen)   and Assigned(DlIs64Bit)    and
+            Assigned(DlInp8)      and Assigned(DlOutp8)      and
+            Assigned(DlInp16)     and Assigned(DlOutp16)     and
+            Assigned(DlInp32)     and Assigned(DlOutp32)     and
+            Assigned(DlRegNotify) and Assigned(DlGetNotify)  and
+            Assigned(DlIrqWait)   and Assigned(DlIrqRequest) and
+            Assigned(DlForceNotify);
+end;
+
+{ IrqWait }
+
+constructor IrqWait.Create(TotalTasks: integer; AOwner: TObject; FuncPtr:TDLIrqWait);
+begin
+  numTasks:=TotalTasks;
+  Owner:=AOwner;
+  DlIrqWait:=FuncPtr;
+  Priority:=tpLower;
+  inherited Create(false);
+end;
+
+procedure IrqWait.Execute;
+var
+  inTasks  : array of TPortTask = ();
+  outTasks : array of TPortTask = ();
+  i        : Integer = 0;
+begin
+  SetLength(inTasks,  numTasks);
+  SetLength(outTasks, numTasks);
+  for i:=0 to numTasks-1 do
+    begin
+      inTasks[i].taskOperation:=Word(INPOUT_READ16);
+      inTasks[i].taskPort:=Random(MAXSHORT);
+    end;
+  TForm1(Owner).TStartWait:=GetUNIXTime;
+  DlIrqWait(@inTasks[0], Length(inTasks)*sizeOf(TPortTask),
+            @outTasks[0], Length(outTasks)*sizeOf(TPortTask));
+  TForm1(Owner).TEndWait:=GetUNIXTime;
 end;
 
 end.

@@ -1,4 +1,7 @@
 {"version":1,"strings":[
 {"hash":5073153,"name":"tform1.caption","sourcebytes":[70,111,114,109,49],"value":"Form1"},
-{"hash":54735664,"name":"tform1.enumruns.text","sourcebytes":[49,48,48,48,48,48],"value":"100000"}
+{"hash":87294496,"name":"tform1.btnruntest.caption","sourcebytes":[82,47,87,32,99,121,99,108,101,115,32,226,134,146,32],"value":"R/W cycles \u2192 "},
+{"hash":54735664,"name":"tform1.enumruns.text","sourcebytes":[49,48,48,48,48,48],"value":"100000"},
+{"hash":195232786,"name":"tform1.btnsetirqwait.caption","sourcebytes":[87,97,105,116,32,102,111,114,32,99,111,109,112,108,101,116,101,32,226,134,146],"value":"Wait for complete \u2192"},
+{"hash":838,"name":"tform1.enumtasks.text","sourcebytes":[49,54],"value":"16"}
 ]}

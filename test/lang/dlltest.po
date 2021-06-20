@@ -1,11 +1,23 @@
 msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
+#: tform1.btnruntest.caption
+msgid "R/W cycles → "
+msgstr ""
+
+#: tform1.btnsetirqwait.caption
+msgid "Wait for complete →"
+msgstr ""
+
 #: tform1.caption
 msgid "Form1"
 msgstr ""
 
 #: tform1.enumruns.text
 msgid "100000"
+msgstr ""
+
+#: tform1.enumtasks.text
+msgid "16"
 msgstr ""
 

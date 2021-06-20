@@ -50,10 +50,12 @@ Return Value:
 --*/
 {
     WDF_OBJECT_ATTRIBUTES deviceAttributes;
-    PINPOUTNG_CONTEXT       deviceContext;
+    PINPOUTNG_CONTEXT     deviceContext;
     PNP_BUS_INFORMATION   busInfo;
     WDFDEVICE             device;
     NTSTATUS              status;
+
+    WDF_OBJECT_ATTRIBUTES timerAttributes;
 
 //!!    PDEVICE_OBJECT deviceObject;
 //!!    NTSTATUS status;
@@ -70,7 +72,8 @@ Return Value:
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DEVICE, "%!FUNC! Entry");
 
     WdfDeviceInitSetDeviceType(DeviceInit, FILE_DEVICE_BUS_EXTENDER);
-    WdfDeviceInitSetExclusive(DeviceInit, TRUE);
+    //WdfDeviceInitSetExclusive(DeviceInit, TRUE);
+    WdfDeviceInitSetIoType(DeviceInit, WdfDeviceIoBuffered);
 
     WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&deviceAttributes, INPOUTNG_CONTEXT);
 
@@ -131,12 +134,30 @@ Return Value:
 
         WdfDeviceSetBusInformationForChildren(device, &busInfo);
         
+        //
         //Create ISR…
         //
         status = inpOutNgInterruptCreate(deviceContext);
-
         if (!NT_SUCCESS(status)) {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate ISR creation failed %!STATUS!", status);
+            return status;
+        }
+
+        //
+        // Create timer...
+        //
+        WDF_TIMER_CONFIG_INIT(&deviceContext->timerConfig, inpOutNgOnTimer);
+
+        WDF_OBJECT_ATTRIBUTES_INIT(&timerAttributes);
+        timerAttributes.ParentObject = deviceContext->Device;
+        timerAttributes.ExecutionLevel = WdfExecutionLevelDispatch;
+        deviceContext->timerConfig.Period = 10;
+        status = WdfTimerCreate(&deviceContext->timerConfig,
+            &timerAttributes,
+            &deviceContext->dpcTimer);
+
+        if (!NT_SUCCESS(status)) {
+            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate timer creation failed %!STATUS!", status);
             return status;
         }
 

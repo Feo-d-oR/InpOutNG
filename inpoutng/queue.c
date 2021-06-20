@@ -23,8 +23,6 @@ Environment:
 
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (PAGE, inpOutNgQueueInitialize)
-#pragma alloc_text (PAGE, inpOutNgEvtIoDeviceControl)
-#pragma alloc_text (PAGE, inpOutNgNotify)
 #endif
 /**
  * @brief Инициализация очередей обработки запросов
@@ -152,7 +150,6 @@ inpOutNgEvtIoDeviceControl(
     PULONG              inBuf = NULL;
     PULONG              outBuf = NULL;
     PINPOUTNG_CONTEXT   devContext;
-    PAGED_CODE();
 
     // Получение ссылки на контекст устройства через идентификатор очереди...
     devContext = inpOutNgGetContext(WdfIoQueueGetDevice(Queue));
@@ -318,10 +315,13 @@ inpOutNgEvtIoDeviceControl(
                 status = STATUS_BUFFER_TOO_SMALL;
                 break;
             }
-
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                        "%!FUNC! ---> IOCTL_REGISTER_IRQ, (ptrin==%p, listin=%d, ptrout==%p, listout==%d)\n",
+                        inBuf, (int)inBuffersize / sizeof(port_task_t), outBuf, (int)outBuffersize / sizeof(port_task_t));
+            
             status = WdfRequestForwardToIoQueue(Request,
                 devContext->asyncQueue);
-
+            
             //
             // Если запрос не может быть перенаправлен в очередь ожидания,
             // требуется его завершить. Статус операции будет соответствовать коду ошибки
@@ -329,9 +329,11 @@ inpOutNgEvtIoDeviceControl(
             // 
             if (!NT_SUCCESS(status)) {
                 opInfo = 0;
+                TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Error forwarding to queue! status==0x%x\n", status);
                 break;
             }
-
+            
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! <--- IOCTL_REGISTER_IRQ\n");
             //
             // *** ЗАПРОС ПОСТАВЛЕН В ОЖИДАНИЕ ***
             //     Статус операции будет выставлен по его завершению,
@@ -341,8 +343,10 @@ inpOutNgEvtIoDeviceControl(
         }
 
         case IOCTL_TEST_ASYNC: {
-            inpOutNgNotify(devContext);
-            return;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> IOCTL_IOCTL_TEST_ASYNC\n");
+            devContext->drainIrq=TRUE;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! <--- IOCTL_IOCTL_TEST_ASYNC\n");
+            break;
         }
 
         case IOCTL_GET_DRVINFO: {
@@ -373,9 +377,13 @@ inpOutNgEvtIoDeviceControl(
         RtlCopyMemory(outBuf, &outData, opInfo);
     }
 
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Calling completion for main IOCtl handler...\n");
+
     WdfRequestCompleteWithInformation(Request,
         status,
         opInfo);
+
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! <--- Exiting... Status=0x%x, opInfo=%d\n", status, (UINT32)opInfo);
 
     return;
 }
@@ -438,8 +446,6 @@ inpOutNgEvtIoStop(
                 "%!FUNC! Queue 0x%p, Request 0x%p ActionFlags %d", 
                 Queue, Request, ActionFlags);
 
-
-
     return;
 }
 
@@ -450,20 +456,22 @@ inpOutNgEvtIoStop(
 VOID
 inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
 {
-    NTSTATUS      status;
-    ULONG_PTR     opInfo;
+    NTSTATUS      status=STATUS_ABANDONED;
+    ULONG         opInfo=0;
     WDFREQUEST    notifyRequest;
 
     PULONG        inBuf = NULL;
-    size_t        inBufferSize;
-    p_port_task_t inTask;
+    size_t        inBufferSize=0;
+    p_port_task_t inTask=NULL;
 
     PULONG        outBuf = NULL;
-    size_t        outBufferSize;
-    p_port_task_t outTask;
+    size_t        outBufferSize=0;
+    p_port_task_t outTask=NULL;
 
-    size_t        taskSize;
-    size_t        i;
+    size_t        taskSize=0;
+    size_t        i=0;
+
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> Got in\n");
 
     status = WdfIoQueueRetrieveNextRequest(
         DevContext->asyncQueue,
@@ -478,6 +486,8 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
         // Запросов нет. Успешно забрать запрос из очереди ожидания не вышло.
         // Возможно, в очереди попросту нет запросов. В любом случае — на выход
         // 
+        DevContext->drainIrq=FALSE;
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> No queries found. Exiting.\n");
         return;
     }
 
@@ -501,14 +511,25 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
         // 
         status = STATUS_INSUFFICIENT_RESOURCES;
         opInfo = 0;
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- No input task buffer found! Exiting.\n");
         goto queue_completion;
     }
     else {
         // Проверить, что размер входного буфера больше 32-х разрядов
-        ASSERT(inBufferSize >= sizeof(port_task_t));
+        if (inBufferSize < sizeof(port_task_t)) {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            opInfo = 0;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer too small (%d bytes)! Exiting.\n", (int)inBufferSize);
+            goto queue_completion;
+        }
 
         // Проверить, что указатель на буфер не нулевой
-        ASSERT(inBuf != NULL);
+        if (inBuf == NULL) {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            opInfo = 0;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer pointer is NULL! Exiting.\n");
+            goto queue_completion;
+        }
         
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Data from User : 0x%p, %d bytes\n", inBuf, (int)inBufferSize);
         //
@@ -520,27 +541,38 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
         if (!NT_SUCCESS(status)) {
             opInfo = 0;
             status = STATUS_INSUFFICIENT_RESOURCES;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- No output task buffer found! Exiting.\n");
             goto queue_completion;
         }
 
-        ASSERT(outBufferSize >= sizeof(port_task_t));
-        ASSERT(outBuf != NULL);
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Data to User : 0x%p, %d bytes\n", outBuf, (int)outBufferSize);
-        
-        if (outBufferSize < inBufferSize)
-        {
-            opInfo = 0;
+        if (outBufferSize != inBufferSize) {
             status = STATUS_INSUFFICIENT_RESOURCES;
+            opInfo = 0;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                        "%!FUNC! ---- Input / Output buffers size mismatch (%d != %d)! Exiting.\n",
+                        (int)inBufferSize, (int)outBufferSize);
             goto queue_completion;
         }
 
+        if (outBuf == NULL) {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            opInfo = 0;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Output task buffer pointer is NULL! Exiting.\n");
+            goto queue_completion;
+        }
+        
         inTask = (p_port_task_t)inBuf;
         outTask = (p_port_task_t)outBuf;
 
         taskSize = inBufferSize / sizeof(port_task_t);
 
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Got %d tasks in list, proceeding...\n", (int)taskSize);
+
         for (i = 0; i < taskSize; i++)
         {
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                        "%!FUNC! ----> parsing task: code==0x%04x, port==0x%04x, data==0x%08x\n",
+                        inTask[i].taskOperation, inTask[i].taskPort, inTask[i].taskData);
             switch (inTask[i].taskOperation) {
                 case INPOUT_READ8: {
                     outTask[i].taskOperation = INPOUT_READ8_ACK;
@@ -554,23 +586,23 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
                     break;
                 }
                 case INPOUT_READ16: {
-                    outTask[i].taskOperation = INPOUT_READ8_ACK;
+                    outTask[i].taskOperation = INPOUT_READ16_ACK;
                     outTask[i].taskData = __inword(inTask[i].taskPort);
                     break;
                 }
                 case INPOUT_WRITE16: {
-                    outTask[i].taskOperation = INPOUT_WRITE8_ACK;
+                    outTask[i].taskOperation = INPOUT_WRITE16_ACK;
                     __outword(inTask[i].taskPort, (USHORT)(inTask[i].taskData & 0x0000ffff));
                     outTask[i].taskData = 0x0;
                     break;
                 }
                 case INPOUT_READ32: {
-                    outTask[i].taskOperation = INPOUT_READ8_ACK;
+                    outTask[i].taskOperation = INPOUT_READ32_ACK;
                     outTask[i].taskData = __indword(inTask[i].taskPort);
                     break;
                 }
                 case INPOUT_WRITE32: {
-                    outTask[i].taskOperation = INPOUT_WRITE8_ACK;
+                    outTask[i].taskOperation = INPOUT_WRITE32_ACK;
                     __outdword(inTask[i].taskPort, inTask[i].taskData);
                     outTask[i].taskData = 0x0;
                     break;
@@ -582,13 +614,17 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
                     break;
                 }
             }
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                "%!FUNC! <---- parsed task: code==0x%04x, port==0x%04x, data==0x%08x\n",
+                outTask[i].taskOperation, outTask[i].taskPort, outTask[i].taskData);
+
         }
         //
         // Complete the IOCTL_OSR_INVERT_NOTIFICATION with success, indicating
         // we're returning a longword of data in the user's OutBuffer
         // 
         status = STATUS_SUCCESS;
-        opInfo = inBufferSize;
+        opInfo = (ULONG)inBufferSize;
     }
 
     //
@@ -596,6 +632,9 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
     // by completing the dequeued Request.
     // 
 queue_completion:
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                "%!FUNC! <--- Notifying User: (P=0x%p, S=%d bytes), Status=0x%x, opSize=%d\n",
+                outBuf, (int)outBufferSize, status, (UINT32)opInfo);
     WdfRequestCompleteWithInformation(notifyRequest, status, opInfo);
 
 }

@@ -36,7 +36,7 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll = 1
 
 [InpOutNg_Device.NT]
 CopyFiles=Drivers_Dir
-LogConfig=lcIrq5,lcIrq7,lcIrq8,lcIrq11
+LogConfig=lcIrq0,lcIrq1,lcIrq2,lcIrq3,lcIrq4,lcIrq5,lcIrq6,lcIrq7,lcIrq8,lcIrq9,lcIrq10,lcIrq11,lcIrq12,lcIrq13,lcIrq14,lcIrq15
 
 [Drivers_Dir]
 inpoutng.sys
@@ -59,11 +59,47 @@ ConfigPriority=FORCECONFIG
 IOConfig=300-340(fff::)
 IRQConfig=LS:5
 
+[lcIrq0]
+DisplayName=%IRQ1%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:0
+
+[lcIrq1]
+DisplayName=%IRQ1%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:1
+
+[lcIrq2]
+DisplayName=%IRQ2%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:2
+
+[lcIrq3]
+DisplayName=%IRQ3%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:3
+
+[lcIrq4]
+DisplayName=%IRQ4%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:4
+
 [lcIrq5]
 DisplayName=%IRQ5%
 ConfigPriority=FORCECONFIG
 IOConfig=300-340(fff::)
 IRQConfig=LS:5
+
+[lcIrq6]
+DisplayName=%IRQ6%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:6
 
 [lcIrq7]
 DisplayName=%IRQ7%
@@ -77,17 +113,47 @@ ConfigPriority=FORCECONFIG
 IOConfig=300-340(fff::)
 IRQConfig=LS:8
 
+[lcIrq9]
+DisplayName=%IRQ9%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:9
+
 [lcIrq10]
 DisplayName=%IRQ10%
 ConfigPriority=FORCECONFIG
 IOConfig=300-340(fff::)
-IRQConfig=LS:11
+IRQConfig=LS:10
 
 [lcIrq11]
 DisplayName=%IRQ11%
 ConfigPriority=FORCECONFIG
 IOConfig=300-340(fff::)
 IRQConfig=LS:11
+
+[lcIrq12]
+DisplayName=%IRQ12%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:12
+
+[lcIrq13]
+DisplayName=%IRQ13%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:13
+
+[lcIrq14]
+DisplayName=%IRQ14%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:14
+
+[lcIrq15]
+DisplayName=%IRQ15%
+ConfigPriority=FORCECONFIG
+IOConfig=300-340(fff::)
+IRQConfig=LS:15
 
 [InpOutNg_Device.NT.LogConfigOverride]
 DisplayName=%IRQ12%
@@ -122,9 +188,18 @@ ClassName = "System"
 DiskName = "InpOutNg Installation Disk"
 InpOutNg.DeviceDesc = "Чтение/запись портов ISA/PCI InpOutNg"
 InpOutNg.SVCDESC = "Служба InpOutNg"
+IRQ1 = "Use IRQ 1"
+IRQ2 = "Use IRQ 2"
+IRQ3 = "Use IRQ 3"
+IRQ4 = "Use IRQ 4"
 IRQ5 = "Use IRQ 5"
+IRQ6 = "Use IRQ 6"
 IRQ7 = "Use IRQ 7"
 IRQ8 = "Use IRQ 8"
+IRQ9 = "Use IRQ 9"
 IRQ10 = "Use IRQ 10"
 IRQ11 = "Use IRQ 11"
 IRQ12 = "Use IRQ 12"
+IRQ13 = "Use IRQ 13"
+IRQ14 = "Use IRQ 14"
+IRQ15 = "Use IRQ 15"
