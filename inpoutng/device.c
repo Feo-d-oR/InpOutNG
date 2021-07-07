@@ -24,6 +24,7 @@ Environment:
 #pragma alloc_text (PAGE, inpOutNgEvtDeviceD0Exit)
 #pragma alloc_text (PAGE, inpOutNgSetIdleAndWakeSettings)
 #pragma alloc_text (PAGE, inpOutNgPrepareHardware)
+#pragma alloc_text (PAGE, inpOutNgInitializeDeviceContext)
 #endif
 
 NTSTATUS
@@ -795,8 +796,8 @@ Return Value:
                 TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_CONFIG,
                     " - Bus number Resource [%I64X-%I64X]",
                     desc->u.BusNumber.Start,
-                    desc->u.BusNumber.Start +
-                    desc->u.BusNumber.Length);
+                    (UINT64)((UINT64)desc->u.BusNumber.Start +
+                    (UINT64)desc->u.BusNumber.Length));
                 break;
             }
             case CmResourceTypeMemoryLarge: {
@@ -1008,8 +1009,6 @@ Return Value:
 --*/
 {
     PINPOUTNG_CONTEXT devContext;
-
-    PAGED_CODE();
 
     devContext = inpOutNgGetContext((WDFDEVICE)Device);
 

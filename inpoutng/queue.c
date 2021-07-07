@@ -136,7 +136,7 @@ inpOutNgEvtIoDeviceControl(
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, 
                 TRACE_QUEUE, 
-                "%!FUNC! Queue 0x%p, Request 0x%p OutputBufferLength %d InputBufferLength %d IoControlCode %08x", 
+                "%!FUNC! Queue 0x%p, Req 0x%p OBufLen %d IBufLen %d IoCtlCode %08x", 
                 Queue, Request, (int) OutputBufferLength, (int) InputBufferLength, IoControlCode);
     
     NTSTATUS            status = STATUS_UNSUCCESSFUL;
@@ -181,7 +181,7 @@ inpOutNgEvtIoDeviceControl(
     // «Сослать» на входной буфер типизированный указатель для последующего разбора */
     inData = (p_inPortData_t)inBuf;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data from User : (0x%p) 0x%08x\n", inBuf, *inBuf);
+    //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data from User : (0x%p) 0x%08x\n", inBuf, *inBuf);
 
     // 
     // Если длина выходного буфера не ноль, требуется получить указатель на него и проверить,
@@ -195,7 +195,7 @@ inpOutNgEvtIoDeviceControl(
         }
         ASSERT(outBuffersize >= OutputBufferLength);
         ASSERT(outBuf != NULL);
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data to User : (0x%p)\n", outBuf);
+        //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data to User : (0x%p)\n", outBuf);
     }
 
     switch (IoControlCode)
@@ -315,9 +315,9 @@ inpOutNgEvtIoDeviceControl(
                 status = STATUS_BUFFER_TOO_SMALL;
                 break;
             }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+            /*TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
                         "%!FUNC! ---> IOCTL_REGISTER_IRQ, (ptrin==%p, listin=%d, ptrout==%p, listout==%d)\n",
-                        inBuf, (int)inBuffersize / sizeof(port_task_t), outBuf, (int)outBuffersize / sizeof(port_task_t));
+                        inBuf, (int)inBuffersize / sizeof(port_task_t), outBuf, (int)outBuffersize / sizeof(port_task_t));*/
             
             status = WdfRequestForwardToIoQueue(Request,
                 devContext->asyncQueue);
@@ -333,7 +333,7 @@ inpOutNgEvtIoDeviceControl(
                 break;
             }
             
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! <--- IOCTL_REGISTER_IRQ\n");
+            /*TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! <--- IOCTL_REGISTER_IRQ\n");*/
             //
             // *** ЗАПРОС ПОСТАВЛЕН В ОЖИДАНИЕ ***
             //     Статус операции будет выставлен по его завершению,
@@ -343,9 +343,9 @@ inpOutNgEvtIoDeviceControl(
         }
 
         case IOCTL_TEST_ASYNC: {
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> IOCTL_IOCTL_TEST_ASYNC\n");
+            /*TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> IOCTL_IOCTL_TEST_ASYNC\n");*/
             devContext->drainIrq=TRUE;
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! <--- IOCTL_IOCTL_TEST_ASYNC\n");
+            /*TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! <--- IOCTL_IOCTL_TEST_ASYNC\n");*/
             break;
         }
 
@@ -361,6 +361,7 @@ inpOutNgEvtIoDeviceControl(
             }
             break;
         }
+
         default: {
             opInfo = 0;
             status = STATUS_UNSUCCESSFUL;
@@ -377,7 +378,7 @@ inpOutNgEvtIoDeviceControl(
         RtlCopyMemory(outBuf, &outData, opInfo);
     }
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Calling completion for main IOCtl handler...\n");
+    //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Calling completion for main IOCtl handler...\n");
 
     WdfRequestCompleteWithInformation(Request,
         status,
@@ -469,9 +470,9 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
     p_port_task_t outTask=NULL;
 
     size_t        taskSize=0;
-    size_t        i=0;
+    INT           i=0;
 
-    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> Got in\n");
+    //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> Got in\n");
 
     status = WdfIoQueueRetrieveNextRequest(
         DevContext->asyncQueue,
@@ -486,8 +487,8 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
         // Запросов нет. Успешно забрать запрос из очереди ожидания не вышло.
         // Возможно, в очереди попросту нет запросов. В любом случае — на выход
         // 
-        DevContext->drainIrq=FALSE;
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> No queries found. Exiting.\n");
+        DevContext->drainIrq = FALSE;
+        //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> No queries. Exiting.");
         return;
     }
 
@@ -511,130 +512,125 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
         // 
         status = STATUS_INSUFFICIENT_RESOURCES;
         opInfo = 0;
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- No input task buffer found! Exiting.\n");
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- No input task buffer! Exiting.");
         goto queue_completion;
     }
-    else {
-        // Проверить, что размер входного буфера больше 32-х разрядов
-        if (inBufferSize < sizeof(port_task_t)) {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            opInfo = 0;
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer too small (%d bytes)! Exiting.\n", (int)inBufferSize);
-            goto queue_completion;
-        }
 
-        // Проверить, что указатель на буфер не нулевой
-        if (inBuf == NULL) {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            opInfo = 0;
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer pointer is NULL! Exiting.\n");
-            goto queue_completion;
-        }
-        
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Data from User : 0x%p, %d bytes\n", inBuf, (int)inBufferSize);
-        //
-        // We successfully retrieved a Request from the notification Queue
-        // AND we retrieved an output buffer into which to return some
-        // additional information.
-        // 
-        status = WdfRequestRetrieveOutputBuffer(notifyRequest, 0, &outBuf, &outBufferSize);
-        if (!NT_SUCCESS(status)) {
-            opInfo = 0;
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- No output task buffer found! Exiting.\n");
-            goto queue_completion;
-        }
+    status = STATUS_INSUFFICIENT_RESOURCES;
+    opInfo = 0;
 
-        if (outBufferSize != inBufferSize) {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            opInfo = 0;
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
-                        "%!FUNC! ---- Input / Output buffers size mismatch (%d != %d)! Exiting.\n",
-                        (int)inBufferSize, (int)outBufferSize);
-            goto queue_completion;
-        }
-
-        if (outBuf == NULL) {
-            status = STATUS_INSUFFICIENT_RESOURCES;
-            opInfo = 0;
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Output task buffer pointer is NULL! Exiting.\n");
-            goto queue_completion;
-        }
-        
-        inTask = (p_port_task_t)inBuf;
-        outTask = (p_port_task_t)outBuf;
-
-        taskSize = inBufferSize / sizeof(port_task_t);
-
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Got %d tasks in list, proceeding...\n", (int)taskSize);
-
-        for (i = 0; i < taskSize; i++)
-        {
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
-                        "%!FUNC! ----> parsing task: code==0x%04x, port==0x%04x, data==0x%08x\n",
-                        inTask[i].taskOperation, inTask[i].taskPort, inTask[i].taskData);
-            switch (inTask[i].taskOperation) {
-                case INPOUT_READ8: {
-                    outTask[i].taskOperation = INPOUT_READ8_ACK;
-                    outTask[i].taskData = __inbyte(inTask[i].taskPort);
-                    break;
-                }
-                case INPOUT_WRITE8: {
-                    outTask[i].taskOperation = INPOUT_WRITE8_ACK;
-                    __outbyte(inTask[i].taskPort, (BYTE)(inTask[i].taskData & 0x000000ff));
-                    outTask[i].taskData = 0x0;
-                    break;
-                }
-                case INPOUT_READ16: {
-                    outTask[i].taskOperation = INPOUT_READ16_ACK;
-                    outTask[i].taskData = __inword(inTask[i].taskPort);
-                    break;
-                }
-                case INPOUT_WRITE16: {
-                    outTask[i].taskOperation = INPOUT_WRITE16_ACK;
-                    __outword(inTask[i].taskPort, (USHORT)(inTask[i].taskData & 0x0000ffff));
-                    outTask[i].taskData = 0x0;
-                    break;
-                }
-                case INPOUT_READ32: {
-                    outTask[i].taskOperation = INPOUT_READ32_ACK;
-                    outTask[i].taskData = __indword(inTask[i].taskPort);
-                    break;
-                }
-                case INPOUT_WRITE32: {
-                    outTask[i].taskOperation = INPOUT_WRITE32_ACK;
-                    __outdword(inTask[i].taskPort, inTask[i].taskData);
-                    outTask[i].taskData = 0x0;
-                    break;
-                }
-                default: {
-                    outTask[i].taskOperation = INPOUT_ACK;
-                    outTask[i].taskPort = 0xAA;
-                    outTask[i].taskData = 0xA5;
-                    break;
-                }
-            }
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
-                "%!FUNC! <---- parsed task: code==0x%04x, port==0x%04x, data==0x%08x\n",
-                outTask[i].taskOperation, outTask[i].taskPort, outTask[i].taskData);
-
-        }
-        //
-        // Complete the IOCTL_OSR_INVERT_NOTIFICATION with success, indicating
-        // we're returning a longword of data in the user's OutBuffer
-        // 
-        status = STATUS_SUCCESS;
-        opInfo = (ULONG)inBufferSize;
+    // Проверить, что размер входного буфера больше 32-х разрядов
+    if (inBufferSize < sizeof(port_task_t)) {
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer too small (%d bytes)! Exiting.\n", (int)inBufferSize);
+        goto queue_completion;
     }
+
+    // Проверить, что указатель на буфер не нулевой
+    if (inBuf == NULL) {
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer pointer is NULL! Exiting.\n");
+        goto queue_completion;
+    }
+        
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Data from User : 0x%p, %d bytes\n", inBuf, (int)inBufferSize);
+    
+    //
+    // We successfully retrieved a Request from the notification Queue
+    // AND we retrieved an output buffer into which to return some
+    // additional information.
+    // 
+    status = WdfRequestRetrieveOutputBuffer(notifyRequest, 0, &outBuf, &outBufferSize);
+    if (!NT_SUCCESS(status)) {
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- No output task buffer found! Exiting.\n");
+        goto queue_completion;
+    }
+
+    status = STATUS_INSUFFICIENT_RESOURCES;
+    opInfo = 0;
+    if (outBufferSize != inBufferSize) {
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                    "%!FUNC! ---- Input / Output buffers size mismatch (%d != %d)! Exiting.\n",
+                    (int)inBufferSize, (int)outBufferSize);
+        goto queue_completion;
+    }
+
+    if (outBuf == NULL) {
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Output task buffer pointer is NULL! Exiting.\n");
+        goto queue_completion;
+    }
+        
+    inTask = (p_port_task_t)inBuf;
+    outTask = (p_port_task_t)outBuf;
+
+    taskSize = inBufferSize / sizeof(port_task_t);
+
+    //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Got %d tasks in list, proceeding...\n", (int)taskSize);
+
+    for (i = 0; i < (INT)taskSize; i++)
+    {
+        /*TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                    "%!FUNC! ----> parsing task: code==0x%04x, port==0x%04x, data==0x%08x\n",
+                    inTask[i].taskOperation, inTask[i].taskPort, inTask[i].taskData);*/
+        switch (inTask[i].taskOperation) {
+            case INPOUT_READ8: {
+                outTask[i].taskOperation = INPOUT_READ8_ACK;
+                outTask[i].taskData = __inbyte(inTask[i].taskPort);
+                break;
+            }
+            case INPOUT_WRITE8: {
+                outTask[i].taskOperation = INPOUT_WRITE8_ACK;
+                __outbyte(inTask[i].taskPort, (BYTE)(inTask[i].taskData & 0x000000ff));
+                outTask[i].taskData = 0x0;
+                break;
+            }
+            case INPOUT_READ16: {
+                outTask[i].taskOperation = INPOUT_READ16_ACK;
+                outTask[i].taskData = __inword(inTask[i].taskPort);
+                break;
+            }
+            case INPOUT_WRITE16: {
+                outTask[i].taskOperation = INPOUT_WRITE16_ACK;
+                __outword(inTask[i].taskPort, (USHORT)(inTask[i].taskData & 0x0000ffff));
+                outTask[i].taskData = 0x0;
+                break;
+            }
+            case INPOUT_READ32: {
+                outTask[i].taskOperation = INPOUT_READ32_ACK;
+                outTask[i].taskData = __indword(inTask[i].taskPort);
+                break;
+            }
+            case INPOUT_WRITE32: {
+                outTask[i].taskOperation = INPOUT_WRITE32_ACK;
+                __outdword(inTask[i].taskPort, inTask[i].taskData);
+                outTask[i].taskData = 0x0;
+                break;
+            }
+            default: {
+                outTask[i].taskOperation = INPOUT_ACK;
+                outTask[i].taskPort = 0xAA;
+                outTask[i].taskData = 0xA5;
+                break;
+            }
+        }
+        /*TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+            "%!FUNC! <---- parsed task: code==0x%04x, port==0x%04x, data==0x%08x\n",
+            outTask[i].taskOperation, outTask[i].taskPort, outTask[i].taskData);*/
+
+    }
+    //
+    // Complete the IOCTL_OSR_INVERT_NOTIFICATION with success, indicating
+    // we're returning a longword of data in the user's OutBuffer
+    // 
+    status = STATUS_SUCCESS;
+    opInfo = (ULONG)inBufferSize;
 
     //
     // And now... NOTIFY the user about the event.  We do this just
     // by completing the dequeued Request.
     // 
 queue_completion:
-    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+    /*TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
                 "%!FUNC! <--- Notifying User: (P=0x%p, S=%d bytes), Status=0x%x, opSize=%d\n",
-                outBuf, (int)outBufferSize, status, (UINT32)opInfo);
+                outBuf, (int)outBufferSize, status, (UINT32)opInfo);*/
     WdfRequestCompleteWithInformation(notifyRequest, status, opInfo);
 
 }

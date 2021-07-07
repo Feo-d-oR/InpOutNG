@@ -27,6 +27,7 @@ typedef struct _DEVICE_CONTEXT
     WDFDEVICE               Device;
 
     WDFINTERRUPT            Interrupt;      // Ёкземпл€р обработчика прерываний
+    WDFSPINLOCK             IsrLock;        // ќбъект синхронизации дл€ прерываний
 
     // IOCTL handling
     WDFQUEUE                cntrlQueue;     // ќчередь обработки IOCtl запросов по умолчанию

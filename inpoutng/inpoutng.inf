@@ -8,7 +8,7 @@ Class = System
 ClassGuid = {4d36e97d-e325-11ce-bfc1-08002be10318}
 Provider = %ManufacturerName%
 CatalogFile = inpoutng.cat
-DriverVer = 2.0.1
+DriverVer = 2.1.0
 PnpLockdown = 1
 
 [DestinationDirs]
@@ -35,11 +35,16 @@ WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll = 1
 %InpOutNg.DeviceDesc% = InpOutNg_Device, root\InpOutNg
 
 [InpOutNg_Device.NT]
-CopyFiles=Drivers_Dir
-LogConfig=lcIrq0,lcIrq1,lcIrq2,lcIrq3,lcIrq4,lcIrq5,lcIrq6,lcIrq7,lcIrq8,lcIrq9,lcIrq10,lcIrq11,lcIrq12,lcIrq13,lcIrq14,lcIrq15
+CopyFiles = Drivers_Dir
+LogConfig = lcIrq0,lcIrq1,lcIrq2,lcIrq3,lcIrq4,lcIrq5,lcIrq6,lcIrq7,lcIrq8,lcIrq9,lcIrq10,lcIrq11,lcIrq12,lcIrq13,lcIrq14,lcIrq15
+AddReg    = DefaultIdleAndWake.AddReg
 
 [Drivers_Dir]
 inpoutng.sys
+
+[DefaultIdleAndWake.AddReg]
+HKR, "WDF", "WdfDefaultIdleInWorkingState", 0x00010001, 1
+HKR, "WDF", "WdfDefaultWakeFromSleepState", 0x00010001, 1
 
 ;-------------- Service installation
 [InpOutNg_Device.NT.Services]
@@ -60,32 +65,32 @@ IOConfig=300-340(fff::)
 IRQConfig=LS:5
 
 [lcIrq0]
-DisplayName=%IRQ1%
-ConfigPriority=FORCECONFIG
+DisplayName=%IRQ0%
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:0
 
 [lcIrq1]
 DisplayName=%IRQ1%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:1
 
 [lcIrq2]
 DisplayName=%IRQ2%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:2
 
 [lcIrq3]
 DisplayName=%IRQ3%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:3
 
 [lcIrq4]
 DisplayName=%IRQ4%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:4
 
@@ -97,69 +102,69 @@ IRQConfig=LS:5
 
 [lcIrq6]
 DisplayName=%IRQ6%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:6
 
 [lcIrq7]
 DisplayName=%IRQ7%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:7
 
 [lcIrq8]
 DisplayName=%IRQ8%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:8
 
 [lcIrq9]
 DisplayName=%IRQ9%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:9
 
 [lcIrq10]
 DisplayName=%IRQ10%
-ConfigPriority=FORCECONFIG
+ConfigPriority=NORMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:10
 
 [lcIrq11]
 DisplayName=%IRQ11%
-ConfigPriority=FORCECONFIG
+ConfigPriority=NORMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:11
 
 [lcIrq12]
 DisplayName=%IRQ12%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:12
 
 [lcIrq13]
 DisplayName=%IRQ13%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:13
 
 [lcIrq14]
 DisplayName=%IRQ14%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:14
 
 [lcIrq15]
 DisplayName=%IRQ15%
-ConfigPriority=FORCECONFIG
+ConfigPriority=SUBOPTIMAL
 IOConfig=300-340(fff::)
 IRQConfig=LS:15
 
 [InpOutNg_Device.NT.LogConfigOverride]
-DisplayName=%IRQ12%
+DisplayName=%IRQ5%
 ConfigPriority=FORCECONFIG
 IOConfig=300-340(fff::)
-IRQConfig=LS:12
+IRQConfig=LS:5
 
 ;
 ;--- InpOutNg_Device Coinstaller installation ------
@@ -188,6 +193,7 @@ ClassName = "System"
 DiskName = "InpOutNg Installation Disk"
 InpOutNg.DeviceDesc = "Чтение/запись портов ISA/PCI InpOutNg"
 InpOutNg.SVCDESC = "Служба InpOutNg"
+IRQ0 = "Use IRQ 0"
 IRQ1 = "Use IRQ 1"
 IRQ2 = "Use IRQ 2"
 IRQ3 = "Use IRQ 3"

@@ -20,7 +20,6 @@ Environment:
 #ifdef ALLOC_PRAGMA
 #pragma alloc_text (INIT, DriverEntry)
 #pragma alloc_text (PAGE, inpOutNgEvtDeviceAdd)
-#pragma alloc_text (PAGE, inpOutNgEvtDriverContextCleanup)
 #endif
 
 NTSTATUS
@@ -66,7 +65,6 @@ Return Value:
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "%!FUNC! Entry");
 
-    KdPrint(("%!FUNC! Entry"));
     //
     // Register a cleanup callback so that we can call WPP_CLEANUP when
     // the framework driver object is deleted during driver unload.
@@ -203,7 +201,7 @@ Return Value:
     devContext = inpOutNgGetContext(device);
 
     devContext->Device = device;
-    devContext->inpOutNgVersion = INPOUTNG_VERSION(2, 0, 1);
+    devContext->inpOutNgVersion = INPOUTNG_VERSION(2, 1, 0);
 
     TraceEvents(TRACE_LEVEL_INFORMATION,
                 TRACE_DRIVER,
@@ -272,7 +270,6 @@ Return Value:
 
 --*/
 {
-    PAGED_CODE();
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT,
         "--> %!FUNC!");

@@ -46,19 +46,28 @@ Return Value:
 --*/
 {
     NTSTATUS                    status;
-    WDF_INTERRUPT_CONFIG        InterruptConfig;
+    WDF_INTERRUPT_CONFIG        IsrConfig;
+    WDF_OBJECT_ATTRIBUTES       IsrLockAttr;
 
-    WDF_INTERRUPT_CONFIG_INIT(&InterruptConfig,
+    WDF_INTERRUPT_CONFIG_INIT(&IsrConfig,
         inpOutNgEvtInterruptIsr,
         inpOutNgEvtInterruptDpc);
 
-    InterruptConfig.EvtInterruptEnable = inpOutNgEvtInterruptEnable;
-    InterruptConfig.EvtInterruptDisable = inpOutNgEvtInterruptDisable;
+    WDF_OBJECT_ATTRIBUTES_INIT(&IsrLockAttr);
+    IsrLockAttr.ParentObject = DevExt->Interrupt;
+    status = WdfSpinLockCreate(&IsrLockAttr, &DevExt->IsrLock);
+    if (!NT_SUCCESS(status)) {
+        TraceEvents(TRACE_LEVEL_ERROR, TRACE_IRQ,
+            "WdfIsrLockCreate failed: %!STATUS!", status);
+    }
 
-    // JOHNR: Enable testing of the DpcForIsr Synchronization
-    //InterruptConfig.AutomaticSerialization = TRUE;
+    IsrConfig.EvtInterruptEnable = inpOutNgEvtInterruptEnable;
+    IsrConfig.EvtInterruptDisable = inpOutNgEvtInterruptDisable;
 
-    InterruptConfig.ShareVector = TRUE;
+    IsrConfig.AutomaticSerialization = TRUE;
+    IsrConfig.ShareVector = TRUE;
+    
+    IsrConfig.SpinLock = DevExt->IsrLock;
 
     //
     // Unlike WDM, framework driver should create interrupt object in EvtDeviceAdd and
@@ -69,7 +78,7 @@ Return Value:
     // disconnected.
     //
     status = WdfInterruptCreate(DevExt->Device,
-        &InterruptConfig,
+        &IsrConfig,
         WDF_NO_OBJECT_ATTRIBUTES,
         &DevExt->Interrupt);
 
@@ -110,18 +119,24 @@ Return Value:
 
 --*/
 {
-    PINPOUTNG_CONTEXT   devExt;
-    BOOLEAN             irqQueued;
+    PINPOUTNG_CONTEXT   devExt    = NULL;
+    BOOLEAN             irqQueued = FALSE;
 
     UNREFERENCED_PARAMETER(MessageID);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "--> InpOutNgInterruptHandler");
+    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "--> InpOutNgInterruptHandler");
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
-    irqQueued = WdfInterruptQueueDpcForIsr(devExt->Interrupt);
+    if (devExt) {
+        irqQueued = WdfInterruptQueueDpcForIsr(devExt->Interrupt);
+    }
+    else {
+        TraceEvents(TRACE_LEVEL_WARNING, TRACE_IRQ, "%!FUNC! No Device extension!");
+    }
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "<-- InpOutNgInterruptHandler");
+
+    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "<-- InpOutNgInterruptHandler, %s", irqQueued ? "Queued" : "NOT queued");
 
     return irqQueued;
 }
@@ -153,22 +168,28 @@ Return Value:
 
     PINPOUTNG_CONTEXT        devContext;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "--> %!FUNC!");
-
-    devContext = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
-
     //
     // Acquire this device's InterruptSpinLock.
     //
-    WdfInterruptAcquireLock(Interrupt);
+    //WdfInterruptAcquireLock(Interrupt);
 
-    inpOutNgNotify(devContext);
+    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "--> %!FUNC!");
 
-    devContext->InterruptCount++;
+    devContext = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
+    
+    if (devContext) {
 
-    WdfInterruptReleaseLock(Interrupt);
+        inpOutNgNotify(devContext);
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- %!FUNC!, %d", devContext->InterruptCount);
+        devContext->InterruptCount++;
+        //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "IRQ Count %d", devContext->InterruptCount);
+    }
+    else {
+        TraceEvents(TRACE_LEVEL_WARNING, TRACE_IRQ_DPC, "%!FUNC! No Device extension!");
+    }
+    //WdfInterruptReleaseLock(Interrupt);
+
+    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- %!FUNC!");
 
     return;
 }
