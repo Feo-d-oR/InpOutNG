@@ -26,13 +26,15 @@ typedef enum E_PORT_TASK
     INPOUT_WRITE8 =         0x08,
     INPOUT_WRITE16 =        0x10,
     INPOUT_WRITE32 =        0x20,
+    INPOUT_IRQ_OCCURRED =   0x40,
     INPOUT_ACK =            0x80,
     INPOUT_READ8_ACK =      0x81,
     INPOUT_READ16_ACK =     0x82,
     INPOUT_READ32_ACK =     0x84,
     INPOUT_WRITE8_ACK =     0x88,
     INPOUT_WRITE16_ACK =    0x90,
-    INPOUT_WRITE32_ACK =    0xa0
+    INPOUT_WRITE32_ACK =    0x90,
+    INPOUT_IRQ_EMPTY =      0xc0
 } port_operation_t, * p_port_operation_t;
 
 /**
@@ -147,16 +149,22 @@ UINT    _stdcall getWmNotify( void );
 
 /**
  * @brief 
- * @param inTask 
- * @param inTaskSize 
- * @param outTask 
- * @param outTaskSize 
  * @return 
 */
-BOOL    _stdcall waitForIrq(_In_    p_port_task_t inTask,
-                            _In_    DWORD inTaskSize,
-                            _Inout_ p_port_task_t outTask,
-                            _In_    DWORD outTaskSize);
+BOOL    _stdcall waitForIrq(void);
+
+/**
+ * @brief
+ * @param inTask
+ * @param inTaskSize
+ * @param outTask
+ * @param outTaskSize
+ * @return
+*/
+BOOL    _stdcall doOnIrq(_In_    p_port_task_t inTask,
+                         _In_    DWORD inTaskSize,
+                         _Inout_ p_port_task_t outTask,
+                         _In_    DWORD outTaskSize);
 
 /**
  * @brief 
@@ -179,5 +187,12 @@ VOID    _stdcall requestIrqNotify(_In_      p_port_task_t   inTask,
  * @return 
 */
 VOID	_stdcall forceNotify(void);
+
+/**
+ * @brief
+ * @param
+ * @return
+*/
+ULONG	_stdcall irqCount( void );
 
 EXTERN_C_END

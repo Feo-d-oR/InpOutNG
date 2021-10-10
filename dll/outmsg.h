@@ -35,7 +35,13 @@ EXTERN_C_START
 #define EXIT_FATAL(flags) do { if ((flags) & M_FATAL) {_exit(1);}} while (FALSE)
 
 #define HAVE_VARARG_MACROS
+
+#ifdef ENABLE_MSG
 #define msg(flags, ...) outmsg((flags), __VA_ARGS__)
+#else
+#define msg(flags, ...)
+#endif
+
 #ifdef ENABLE_DEBUG
 #define dmsg(flags, ...) do { if (msg_test(flags)) {outmsg((flags), __VA_ARGS__);} EXIT_FATAL(flags); } while (FALSE)
 #else

@@ -1,6 +1,6 @@
 ;*** BEGIN **********************************************************
 ;**                                                                **
-;** Automatically generated on: Wed Jul 07 23:32:22 2021           **
+;** Automatically generated on: Sun Oct 10 22:14:56 2021           **
 ;**                                                                **
 ;** MakeCAB Version: 5.00                                 **
 ;**                                                                **
@@ -15,11 +15,11 @@
 1,1,x86\inpoutng.sys,30472
 1,1,x86\WdfCoinstaller01009.dll,1461992
 1,1,x64\inpoutng.cat,2680
-1,1,x64\inpoutng.inf,4572
-1,1,x64\inpoutng.sys,39224
+1,1,x64\inpoutng.inf,4068
+1,1,x64\inpoutng.sys,23280
 1,1,x64\WdfCoinstaller01009.dll,1721576
 ;*** END ************************************************************
 ;**                                                                **
-;** Automatically generated on: Wed Jul 07 23:32:22 2021           **
+;** Automatically generated on: Sun Oct 10 22:14:56 2021           **
 ;**                                                                **
 ;*** END ************************************************************

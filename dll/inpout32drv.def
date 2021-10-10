@@ -15,3 +15,5 @@ getWmNotify				@10
 waitForIrq				@11
 requestIrqNotify		@12
 forceNotify				@13
+
+irqCount                @14

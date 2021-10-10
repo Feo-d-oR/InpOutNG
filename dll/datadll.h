@@ -18,6 +18,9 @@ typedef enum E_DRVSTATE {
 
 EXTERN_C HANDLE			drvHandle;
 EXTERN_C HINSTANCE		dllInstance;
+EXTERN_C HANDLE         hCompletionPort;
+EXTERN_C HANDLE         hCompletionThread;
+EXTERN_C DWORD          dwCompletionThreadId;
 
 BOOL _stdcall IsXP64Bit( void );
 BOOL DisableWOW64(PVOID* oldValue);
@@ -46,5 +49,6 @@ DWORD drvInst();
 
 BOOL isNotHandle(HANDLE h);
 
+DWORD WINAPI CompletionPortThread(LPVOID PortHandle);
 
 EXTERN_C_END

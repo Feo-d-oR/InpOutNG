@@ -30,7 +30,7 @@ typedef struct _DEVICE_CONTEXT
     WDFSPINLOCK             IsrLock;        // Объект синхронизации для прерываний
 
     // IOCTL handling
-    WDFQUEUE                cntrlQueue;     // Очередь обработки IOCtl запросов по умолчанию
+    //WDFQUEUE                cntrlQueue;     // Очередь обработки IOCtl запросов по умолчанию
     WDFQUEUE                asyncQueue;     // Очередь для инверсной модели вызовов
 
     ULONG                   HwErrCount;
@@ -39,10 +39,6 @@ typedef struct _DEVICE_CONTEXT
     ULONG                   inpOutNgVersion;// Номер версии драйвера
     BOOLEAN                 ReadReady;
     BOOLEAN                 WriteReady;
-    BOOLEAN                 drainIrq;
-    WDFTIMER                dpcTimer;
-    WDF_TIMER_CONFIG        timerConfig;
-
 } INPOUTNG_CONTEXT, *PINPOUTNG_CONTEXT;
 
 //

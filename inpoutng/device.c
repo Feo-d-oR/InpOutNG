@@ -56,8 +56,6 @@ Return Value:
     WDFDEVICE             device;
     NTSTATUS              status;
 
-    WDF_OBJECT_ATTRIBUTES timerAttributes;
-
 //!!    PDEVICE_OBJECT deviceObject;
 //!!    NTSTATUS status;
 
@@ -141,24 +139,6 @@ Return Value:
         status = inpOutNgInterruptCreate(deviceContext);
         if (!NT_SUCCESS(status)) {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate ISR creation failed %!STATUS!", status);
-            return status;
-        }
-
-        //
-        // Create timer...
-        //
-        WDF_TIMER_CONFIG_INIT(&deviceContext->timerConfig, inpOutNgOnTimer);
-
-        WDF_OBJECT_ATTRIBUTES_INIT(&timerAttributes);
-        timerAttributes.ParentObject = deviceContext->Device;
-        timerAttributes.ExecutionLevel = WdfExecutionLevelDispatch;
-        deviceContext->timerConfig.Period = 10;
-        status = WdfTimerCreate(&deviceContext->timerConfig,
-            &timerAttributes,
-            &deviceContext->dpcTimer);
-
-        if (!NT_SUCCESS(status)) {
-            TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate timer creation failed %!STATUS!", status);
             return status;
         }
 

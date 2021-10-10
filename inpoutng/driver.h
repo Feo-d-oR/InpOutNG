@@ -38,20 +38,22 @@ typedef struct S_PortTask
 
 typedef enum E_PORT_TASK
 {
-    INPOUT_NOTIFY = 0x00,
-    INPOUT_READ8 = 0x01,
-    INPOUT_READ16 = 0x02,
-    INPOUT_READ32 = 0x04,
-    INPOUT_WRITE8 = 0x08,
-    INPOUT_WRITE16 = 0x10,
-    INPOUT_WRITE32 = 0x20,
-    INPOUT_ACK = 0x80,
-    INPOUT_READ8_ACK = 0x81,
-    INPOUT_READ16_ACK = 0x82,
-    INPOUT_READ32_ACK = 0x84,
-    INPOUT_WRITE8_ACK = 0x88,
-    INPOUT_WRITE16_ACK = 0x90,
-    INPOUT_WRITE32_ACK = 0xa0
+    INPOUT_NOTIFY       = 0x00,
+    INPOUT_READ8        = 0x01,
+    INPOUT_READ16       = 0x02,
+    INPOUT_READ32       = 0x04,
+    INPOUT_WRITE8       = 0x08,
+    INPOUT_WRITE16      = 0x10,
+    INPOUT_WRITE32      = 0x20,
+    INPOUT_IRQ_OCCURRED = 0x40,
+    INPOUT_ACK          = 0x80,
+    INPOUT_READ8_ACK    = 0x81,
+    INPOUT_READ16_ACK   = 0x82,
+    INPOUT_READ32_ACK   = 0x84,
+    INPOUT_WRITE8_ACK   = 0x88,
+    INPOUT_WRITE16_ACK  = 0x90,
+    INPOUT_WRITE32_ACK  = 0xa0,
+    INPOUT_IRQ_EMPTY    = 0xc0
 } port_operation_t, * p_port_operation_t;
 
 typedef struct S_InPortData

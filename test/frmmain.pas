@@ -76,7 +76,9 @@ uses libTime, Windows;
 
 var
   PrevWndProc: WNDPROC;
-
+  RunCounter : SizeInt=0;
+  TGlobalStart, TGlobalEnd : double;
+  GlobalRuns : Integer;
 { Message Handler}
 function WndCallback(Ahwnd: HWND; uMsg: UINT; wParam: WParam; lParam: LParam):LRESULT; stdcall;
 begin
@@ -127,12 +129,31 @@ begin
 end;
 
 procedure TForm1.IrqDone(Sender: TObject);
+var
+  dt : double;
 begin
-  ShowMessage(Format('IrqWait thread exited. Check your data, master...%s'+
-                     'Time spend in thread is %.9f',
-                     [LineEnding, TEndWait-TStartWait]));
+
   WaitThread.Destroy;
   WaitThread:=NIL;
+
+  if RunCounter>=GlobalRuns
+  then
+    begin
+      TGlobalEnd:=GetUNIXTIme;
+      dt:=TGlobalEnd-TGlobalStart;
+      ShowMessage(Format('IrqWait thread exited. Check your data, master...%s'+
+                         'Time spend in thread is %.9f',
+                         [LineEnding, TGlobalEnd-TGlobalStart]));
+      ShowMessage(Format('%d cycles passed!%sTimespent = %.6f sec (%.6f per r/w cycle)',
+                           [GlobalRuns, LineEnding, dt, dt/GlobalRuns]));
+      RunCounter:=0;
+      GlobalRuns:=0;
+    end
+  else
+    begin
+      Inc(RunCounter);
+      btnSetIrqWaitClick(Self);
+    end;
 end;
 
 procedure TForm1.btnRunTestClick(Sender: TObject);
@@ -171,7 +192,12 @@ begin
   TryStrToInt(eNumTasks.Text, numTasks);
   if numTasks<=0
   then begin ShowMessage('numTasks not recognized'); Exit; end;
-
+  if RunCounter=0
+  then
+    begin
+      TryStrToInt(eNumRuns.Text, GlobalRuns);
+      TGlobalStart:=GetUNIXTime;
+    end;
   if not Assigned(WaitThread)
   then
     begin

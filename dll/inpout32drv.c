@@ -25,6 +25,11 @@
 HANDLE        drvHandle    = INVALID_HANDLE_VALUE;
 HINSTANCE    dllInstance = INVALID_HANDLE_VALUE;
 HWND        parentHwnd    = INVALID_HANDLE_VALUE;
+
+HANDLE           hCompletionPort = INVALID_HANDLE_VALUE;
+HANDLE           hCompletionThread = INVALID_HANDLE_VALUE;
+DWORD            dwCompletionThreadId = 0x0;
+
 //SECURITY_ATTRIBUTES inpSa;
 
 static DWORD  drvInstThreadId    = 0x0;
@@ -96,7 +101,7 @@ int drvOpen(BOOL bX64, p_drvInstState_t pdrvState)
         0, 
         NULL,
         OPEN_EXISTING, 
-        FILE_ATTRIBUTE_NORMAL, 
+        FILE_FLAG_OVERLAPPED, 
         NULL);
     
     err = GetLastError();
@@ -147,6 +152,40 @@ int drvOpen(BOOL bX64, p_drvInstState_t pdrvState)
             }
         }
     }
+
+    if (isNotHandle(hCompletionPort)) {
+        hCompletionPort = CreateIoCompletionPort(drvHandle,
+            NULL,
+            0,
+            0);
+
+        if (isNotHandle(hCompletionPort)) {
+
+            err = GetLastError();
+
+            msg(M_DEBUG, L"%s: CreateIoCompletionPort failed with error 0x%lx\n", TEXT(__FUNCTION__), err);
+
+            return(err);
+
+        }
+
+        hCompletionThread = CreateThread(NULL,               // Default thread security descriptor
+            0,                      // Default stack size
+            CompletionPortThread,   // Start routine
+            hCompletionPort,        // Start routine parameter
+            0,                      // Run immediately
+            &dwCompletionThreadId);          // Thread ID
+
+        if (hCompletionThread == NULL) {
+            err = GetLastError();
+
+            msg(M_DEBUG, L"%s: CreateThread failed with error 0x%lx\n", TEXT(__FUNCTION__), err);
+
+            return(err);
+        }
+
+    }
+
 
     msg(M_DEBUG, L"Successfully opened %s driver.", DRIVERNAME);
     return err;

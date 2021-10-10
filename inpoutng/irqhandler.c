@@ -124,11 +124,12 @@ Return Value:
 
     UNREFERENCED_PARAMETER(MessageID);
 
-    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "--> InpOutNgInterruptHandler");
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "--> InpOutNgInterruptHandler");
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
     if (devExt) {
+        __outbyte((USHORT)0x333, (UCHAR)0xff);   // снять прерывание
         irqQueued = WdfInterruptQueueDpcForIsr(devExt->Interrupt);
     }
     else {
@@ -136,7 +137,7 @@ Return Value:
     }
 
 
-    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "<-- InpOutNgInterruptHandler, %s", irqQueued ? "Queued" : "NOT queued");
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "<-- InpOutNgInterruptHandler, %s", irqQueued ? "Queued" : "NOT queued");
 
     return irqQueued;
 }
@@ -173,7 +174,7 @@ Return Value:
     //
     //WdfInterruptAcquireLock(Interrupt);
 
-    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "--> %!FUNC!");
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "--> %!FUNC!");
 
     devContext = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
     
@@ -182,14 +183,14 @@ Return Value:
         inpOutNgNotify(devContext);
 
         devContext->InterruptCount++;
-        //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "IRQ Count %d", devContext->InterruptCount);
+        TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "IRQ Count %d", devContext->InterruptCount);
     }
     else {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_IRQ_DPC, "%!FUNC! No Device extension!");
     }
     //WdfInterruptReleaseLock(Interrupt);
 
-    //TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- %!FUNC!");
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- %!FUNC!");
 
     return;
 }
@@ -255,18 +256,5 @@ Return Value:
 
     devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
-    WdfTimerStop(devExt->dpcTimer, FALSE);
-
     return STATUS_SUCCESS;
-}
-
-VOID inpOutNgOnTimer(WDFTIMER timer)
-{
-    PINPOUTNG_CONTEXT devContext;
-
-    devContext = inpOutNgGetContext(WdfTimerGetParentObject(timer));
-    if (devContext->drainIrq) {
-        inpOutNgNotify(devContext);
-    }
-    return;
 }

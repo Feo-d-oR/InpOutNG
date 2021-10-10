@@ -43,6 +43,11 @@ ULONG _stdcall inp32(_In_ USHORT portAddr)
     return (ULONG)DlPortRead((DWORD)IOCTL_READ_PORT_ULONG, sizeof(USHORT), portAddr);
 }
 
+ULONG _stdcall irqCount( void )
+{
+    return (ULONG)DlPortRead((DWORD)IOCTL_GET_IRQCOUNT, sizeof(ULONG), 0);
+}
+
 static void DlPortWrite(_In_ DWORD ctlCode, _In_ DWORD dataSize, _In_ USHORT portAddr, _In_ ULONG portData)
 {
     UNREFERENCED_PARAMETER(dataSize);

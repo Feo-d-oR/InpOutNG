@@ -8,7 +8,7 @@ Class = System
 ClassGuid = {4d36e97d-e325-11ce-bfc1-08002be10318}
 Provider = %ManufacturerName%
 CatalogFile = inpoutng.cat
-DriverVer = 2.1.0
+DriverVer = 2.3.0
 PnpLockdown = 1
 
 [DestinationDirs]
@@ -61,110 +61,92 @@ ServiceBinary  = %12%\InpOutNg.sys
 [InpOutNg_Device.NT.FactDef]
 DisplayName=%IRQ5%
 ConfigPriority=FORCECONFIG
-IOConfig=300-340(fff::)
-IRQConfig=LS:5
+IRQConfig=5
 
 [lcIrq0]
 DisplayName=%IRQ0%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:0
+IRQConfig=0
 
 [lcIrq1]
 DisplayName=%IRQ1%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:1
+IRQConfig=1
 
 [lcIrq2]
 DisplayName=%IRQ2%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:2
+IRQConfig=2
 
 [lcIrq3]
 DisplayName=%IRQ3%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:3
+IRQConfig=3
 
 [lcIrq4]
 DisplayName=%IRQ4%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:4
+IRQConfig=4
 
 [lcIrq5]
 DisplayName=%IRQ5%
 ConfigPriority=FORCECONFIG
-IOConfig=300-340(fff::)
-IRQConfig=LS:5
+IRQConfig=5
 
 [lcIrq6]
 DisplayName=%IRQ6%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:6
+IRQConfig=6
 
 [lcIrq7]
 DisplayName=%IRQ7%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:7
+IRQConfig=7
 
 [lcIrq8]
 DisplayName=%IRQ8%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:8
+IRQConfig=8
 
 [lcIrq9]
 DisplayName=%IRQ9%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:9
+IRQConfig=9
 
 [lcIrq10]
 DisplayName=%IRQ10%
 ConfigPriority=NORMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:10
+IRQConfig=10
 
 [lcIrq11]
 DisplayName=%IRQ11%
 ConfigPriority=NORMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:11
+IRQConfig=11
 
 [lcIrq12]
 DisplayName=%IRQ12%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:12
+IRQConfig=12
 
 [lcIrq13]
 DisplayName=%IRQ13%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:13
+IRQConfig=13
 
 [lcIrq14]
 DisplayName=%IRQ14%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:14
+IRQConfig=14
 
 [lcIrq15]
 DisplayName=%IRQ15%
 ConfigPriority=SUBOPTIMAL
-IOConfig=300-340(fff::)
-IRQConfig=LS:15
+IRQConfig=15
 
 [InpOutNg_Device.NT.LogConfigOverride]
 DisplayName=%IRQ5%
 ConfigPriority=FORCECONFIG
-IOConfig=300-340(fff::)
-IRQConfig=LS:5
+IRQConfig=5
 
 ;
 ;--- InpOutNg_Device Coinstaller installation ------
