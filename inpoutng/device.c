@@ -29,8 +29,8 @@ Environment:
 
 NTSTATUS
 inpOutNgCreateDevice(
-    IN PWDFDEVICE_INIT DeviceInit,
-    OUT WDFDEVICE* Device
+    _In_ PWDFDEVICE_INIT DeviceInit,
+    _Out_ WDFDEVICE* Device
     )
 /*++
 
@@ -50,8 +50,8 @@ Return Value:
 
 --*/
 {
-    WDF_OBJECT_ATTRIBUTES deviceAttributes;
-    PINPOUTNG_CONTEXT     deviceContext;
+    WDF_OBJECT_ATTRIBUTES devAttrib;
+    PINPOUTNG_CONTEXT     devContext;
     PNP_BUS_INFORMATION   busInfo;
     WDFDEVICE             device;
     NTSTATUS              status;
@@ -74,9 +74,9 @@ Return Value:
     //WdfDeviceInitSetExclusive(DeviceInit, TRUE);
     WdfDeviceInitSetIoType(DeviceInit, WdfDeviceIoBuffered);
 
-    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&deviceAttributes, INPOUTNG_CONTEXT);
+    WDF_OBJECT_ATTRIBUTES_INIT_CONTEXT_TYPE(&devAttrib, INPOUTNG_CONTEXT);
 
-    status = WdfDeviceCreate(&DeviceInit, &deviceAttributes, &device);
+    status = WdfDeviceCreate(&DeviceInit, &devAttrib, &device);
 
     if (NT_SUCCESS(status)) {
 
@@ -92,13 +92,13 @@ Return Value:
         // If you pass a wrong object handle it will return NULL and assert if
         // run under framework verifier mode.
         //
-        deviceContext = inpOutNgGetContext(device);
+        devContext = inpOutNgGetContext(device);
 
         //
         // Initialize the context.
         //
-        deviceContext->Device = device;
-        deviceContext->HwErrCount = 0;
+        devContext->Device = device;
+        devContext->HwErrCount = 0;
 
         //
         // Create a device interface so that applications can find and talk
@@ -136,7 +136,7 @@ Return Value:
         //
         //Create ISR…
         //
-        status = inpOutNgInterruptCreate(deviceContext);
+        status = inpOutNgInterruptCreate(devContext);
         if (!NT_SUCCESS(status)) {
             TraceEvents(TRACE_LEVEL_ERROR, TRACE_DEVICE, "WdfDeviceCreate ISR creation failed %!STATUS!", status);
             return status;
@@ -153,7 +153,7 @@ Return Value:
 
 NTSTATUS
 inpOutNgInitializeDeviceContext(
-    IN PINPOUTNG_CONTEXT DevExt
+    _In_ PINPOUTNG_CONTEXT devContext
 )
 /*++
 Routine Description:
@@ -164,7 +164,7 @@ Routine Description:
 
 Arguments:
 
-    DevExt     Pointer to the Device Extension
+    devContext     Pointer to the Device Extension
 
 Return Value:
 
@@ -172,7 +172,7 @@ Return Value:
 
 --*/
 {
-    UNREFERENCED_PARAMETER(DevExt);
+    UNREFERENCED_PARAMETER(devContext);
 
     NTSTATUS    status = STATUS_SUCCESS;
 
@@ -215,10 +215,10 @@ Return Value:
     // queue should have an EvtIoStop/EvtIoResume.
     //
     __analysis_assume(queueConfig.EvtIoStop != 0);
-    status = WdfIoQueueCreate(DevExt->Device,
+    status = WdfIoQueueCreate(devContext->Device,
         &queueConfig,
         WDF_NO_OBJECT_ATTRIBUTES,
-        &DevExt->WriteQueue);
+        &devContext->WriteQueue);
     __analysis_assume(queueConfig.EvtIoStop == 0);
 
     if (!NT_SUCCESS(status)) {
@@ -230,8 +230,8 @@ Return Value:
     //
     // Set the Write Queue forwarding for IRP_MJ_WRITE requests.
     //
-    status = WdfDeviceConfigureRequestDispatching(DevExt->Device,
-        DevExt->WriteQueue,
+    status = WdfDeviceConfigureRequestDispatching(devContext->Device,
+        devContext->WriteQueue,
         WdfRequestTypeWrite);
 
     if (!NT_SUCCESS(status)) {
@@ -267,10 +267,10 @@ Return Value:
     // EvtIoStop/EvtIoResume.
     //
     __analysis_assume(queueConfig.EvtIoStop != 0);
-    status = WdfIoQueueCreate(DevExt->Device,
+    status = WdfIoQueueCreate(devContext->Device,
         &queueConfig,
         WDF_NO_OBJECT_ATTRIBUTES,
-        &DevExt->ReadQueue);
+        &devContext->ReadQueue);
     __analysis_assume(queueConfig.EvtIoStop == 0);
 
     if (!NT_SUCCESS(status)) {
@@ -282,8 +282,8 @@ Return Value:
     //
     // Set the Read Queue forwarding for IRP_MJ_READ requests.
     //
-    status = WdfDeviceConfigureRequestDispatching(DevExt->Device,
-        DevExt->ReadQueue,
+    status = WdfDeviceConfigureRequestDispatching(devContext->Device,
+        devContext->ReadQueue,
         WdfRequestTypeRead);
 
     if (!NT_SUCCESS(status)) {
@@ -301,10 +301,10 @@ Return Value:
 
     queueConfig.EvtIoDeviceControl = InpOutNgEvtIoDeviceControl;
 
-    status = WdfIoQueueCreate(DevExt->Device,
+    status = WdfIoQueueCreate(devContext->Device,
         &queueConfig,
         WDF_NO_OBJECT_ATTRIBUTES,
-        &DevExt->ControlQueue);
+        &devContext->ControlQueue);
     if (!NT_SUCCESS(status)) {
         TraceEvents(TRACE_LEVEL_ERROR, DBG_PNP,
             "WdfIoQueueCreate failed: %!STATUS!",
@@ -315,8 +315,8 @@ Return Value:
     //
     // Set the Control Queue forwarding for IOCTL requests.
     //
-    status = WdfDeviceConfigureRequestDispatching(DevExt->Device,
-        DevExt->ControlQueue,
+    status = WdfDeviceConfigureRequestDispatching(devContext->Device,
+        devContext->ControlQueue,
         WdfRequestTypeDeviceControl);
 
     if (!NT_SUCCESS(status)) {
@@ -330,7 +330,7 @@ Return Value:
     //
     // Create a WDFINTERRUPT object.
     //
-    status = inpOutNgInterruptCreate(DevExt);
+    status = inpOutNgInterruptCreate(devContext);
 
     if (!NT_SUCCESS(status)) {
         return status;
@@ -344,7 +344,7 @@ Return Value:
 
 VOID
 inpOutNgCleanupDeviceContext(
-    IN PINPOUTNG_CONTEXT DevExt
+    _In_ PINPOUTNG_CONTEXT devContext
 )
 /*++
 
@@ -356,7 +356,7 @@ Routine Description:
 
 Arguments:
 
-    DevExt - Pointer to our DEVICE_EXTENSION
+    devContext - Pointer to our DEVICE_EXTENSION
 
 Return Value:
 
@@ -364,7 +364,7 @@ Return Value:
 
 --*/
 {
-    UNREFERENCED_PARAMETER(DevExt);
+    UNREFERENCED_PARAMETER(devContext);
 }
 
 NTSTATUS
@@ -421,8 +421,8 @@ Return Value:
 
 NTSTATUS
 inpOutNgEvtDeviceReleaseHardware(
-    IN  WDFDEVICE Device,
-    IN  WDFCMRESLIST ResourcesTranslated
+    _In_  WDFDEVICE Device,
+    _In_  WDFCMRESLIST ResourcesTranslated
 )
 /*++
 
@@ -465,11 +465,10 @@ Return Value:
     return status;
 }
 
-
 NTSTATUS
 inpOutNgEvtDeviceD0Entry(
-    IN  WDFDEVICE Device,
-    IN  WDF_POWER_DEVICE_STATE PreviousState
+    _In_  WDFDEVICE Device,
+    _In_  WDF_POWER_DEVICE_STATE PreviousState
 )
 /*++
 
@@ -526,8 +525,8 @@ Return Value:
 
 NTSTATUS
 inpOutNgEvtDeviceD0Exit(
-    IN  WDFDEVICE Device,
-    IN  WDF_POWER_DEVICE_STATE TargetState
+    _In_  WDFDEVICE Device,
+    _In_  WDF_POWER_DEVICE_STATE TargetState
 )
 /*++
 
@@ -602,7 +601,7 @@ Return Value:
 
 NTSTATUS
 inpOutNgSetIdleAndWakeSettings(
-    IN PINPOUTNG_CONTEXT FdoData
+    _In_ PINPOUTNG_CONTEXT devContext
 )
 /*++
 Routine Description:
@@ -624,9 +623,9 @@ Return Value:
     WDF_DEVICE_POWER_POLICY_WAKE_SETTINGS wakeSettings;
     NTSTATUS    status = STATUS_SUCCESS;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "--> %!FUNC!");
-
     PAGED_CODE();
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "--> %!FUNC!");
 
     //
     // Init the idle policy structure.
@@ -634,7 +633,7 @@ Return Value:
     WDF_DEVICE_POWER_POLICY_IDLE_SETTINGS_INIT(&idleSettings, IdleCanWakeFromS0);
     idleSettings.IdleTimeout = 10000; // 10-sec
 
-    status = WdfDeviceAssignS0IdleSettings(FdoData->Device, &idleSettings);
+    status = WdfDeviceAssignS0IdleSettings(devContext->Device, &idleSettings);
     if (!NT_SUCCESS(status)) {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_INIT,
             "DeviceSetPowerPolicyS0IdlePolicy failed %!STATUS!", status);
@@ -646,7 +645,7 @@ Return Value:
     //
     WDF_DEVICE_POWER_POLICY_WAKE_SETTINGS_INIT(&wakeSettings);
 
-    status = WdfDeviceAssignSxWakeSettings(FdoData->Device, &wakeSettings);
+    status = WdfDeviceAssignSxWakeSettings(devContext->Device, &wakeSettings);
     if (!NT_SUCCESS(status)) {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_INIT,
             "DeviceAssignSxWakeSettings failed %!STATUS!", status);
@@ -660,8 +659,8 @@ Return Value:
 
 NTSTATUS
 inpOutNgPrepareHardware(
-    IN PINPOUTNG_CONTEXT DevExt,
-    IN WDFCMRESLIST    ResourcesTranslated
+    _In_ PINPOUTNG_CONTEXT devContext,
+    _In_ WDFCMRESLIST    ResourcesTranslated
 )
 /*++
 Routine Description:
@@ -671,7 +670,7 @@ Routine Description:
 
 Arguments:
 
-    DevExt      Pointer to our DEVICE_EXTENSION
+    devContext      Pointer to our DEVICE_EXTENSION
 
 Return Value:
 
@@ -679,7 +678,7 @@ Return Value:
 
 --*/
 {
-    UNREFERENCED_PARAMETER(DevExt);
+    UNREFERENCED_PARAMETER(devContext);
     ULONG               i;
     NTSTATUS            status = STATUS_SUCCESS;
     CHAR*               bar;
@@ -849,7 +848,7 @@ Return Value:
 
 NTSTATUS
 inpOutNgInitWrite(
-    IN PINPOUTNG_CONTEXT DevExt
+    _In_ PINPOUTNG_CONTEXT devContext
 )
 /*++
 Routine Description:
@@ -858,7 +857,7 @@ Routine Description:
 
 Arguments:
 
-    DevExt     Pointer to Device Extension
+    devContext     Pointer to Device Extension
 
 Return Value:
 
@@ -868,7 +867,7 @@ Return Value:
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "--> %!FUNC!");
 
-    DevExt->WriteReady = TRUE;
+    devContext->WriteReady = TRUE;
 
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "<-- %!FUNC!");
@@ -879,7 +878,7 @@ Return Value:
 
 NTSTATUS
 inpOutNgInitRead(
-    IN PINPOUTNG_CONTEXT DevExt
+    _In_ PINPOUTNG_CONTEXT devContext
 )
 /*++
 Routine Description:
@@ -888,7 +887,7 @@ Routine Description:
 
 Arguments:
 
-    DevExt     Pointer to Device Extension
+    devContext     Pointer to Device Extension
 
 Return Value:
 
@@ -896,7 +895,7 @@ Return Value:
 {
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "--> %!FUNC!");
 
-    DevExt->ReadReady = TRUE;
+    devContext->ReadReady = TRUE;
 
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "<-- %!FUNC!");
@@ -906,7 +905,7 @@ Return Value:
 
 VOID
 inpOutNgShutdown(
-    IN PINPOUTNG_CONTEXT DevExt
+    _In_ PINPOUTNG_CONTEXT devContext
 )
 /*++
 
@@ -919,7 +918,7 @@ Routine Description:
 
 Arguments:
 
-    DevExt -  Pointer to our adapter
+    devContext -  Pointer to our adapter
 
 Return Value:
 
@@ -932,9 +931,9 @@ Return Value:
     //
     // WdfInterrupt is already disabled so issue a full reset
     //
-    if (DevExt) {
+    if (devContext) {
 
-        inpOutNgHardwareReset(DevExt);
+        inpOutNgHardwareReset(devContext);
     }
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "<--- %!FUNC!");
@@ -942,7 +941,7 @@ Return Value:
 
 VOID
 inpOutNgHardwareReset(
-    IN PINPOUTNG_CONTEXT DevExt
+    _In_ PINPOUTNG_CONTEXT devContext
 )
 /*++
 Routine Description:
@@ -952,7 +951,7 @@ Routine Description:
 
 Arguments:
 
-    DevExt     Pointer to Device Extension
+    devContext     Pointer to Device Extension
 
 Return Value:
 
@@ -963,8 +962,8 @@ Return Value:
     //
     // Clear readiness flags.
     //
-    DevExt->ReadReady = FALSE;
-    DevExt->WriteReady = FALSE;
+    devContext->ReadReady  = FALSE;
+    devContext->WriteReady = FALSE;
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_INIT, "<-- %!FUNC!");
 }
 
@@ -993,4 +992,59 @@ Return Value:
     devContext = inpOutNgGetContext((WDFDEVICE)Device);
 
     inpOutNgCleanupDeviceContext(devContext);
+}
+
+VOID
+doTask(
+    _In_ PINPOUTNG_CONTEXT devContext,
+    _In_ p_port_task_t taskItemIn,
+    _Out_ p_port_task_t taskItemOut
+)
+{
+    if (!taskItemIn || !taskItemOut || !devContext)
+    {
+        return;
+    }
+    switch (taskItemIn->taskOperation) {
+        case INPOUT_READ8: {
+            taskItemOut->taskOperation = INPOUT_READ8_ACK;
+            taskItemOut->taskData = __inbyte(taskItemIn->taskPort);
+            break;
+        }
+        case INPOUT_WRITE8: {
+            taskItemOut->taskOperation = INPOUT_WRITE8_ACK;
+            __outbyte(taskItemIn->taskPort, (BYTE)(taskItemIn->taskData & 0x000000ff));
+            taskItemOut->taskData = 0x0;
+            break;
+        }
+        case INPOUT_READ16: {
+            taskItemOut->taskOperation = INPOUT_READ16_ACK;
+            taskItemOut->taskData = __inword(taskItemIn->taskPort);
+            break;
+        }
+        case INPOUT_WRITE16: {
+            taskItemOut->taskOperation = INPOUT_WRITE16_ACK;
+            __outword(taskItemIn->taskPort, (USHORT)(taskItemIn->taskData & 0x0000ffff));
+            taskItemOut->taskData = 0x0;
+            break;
+        }
+        case INPOUT_READ32: {
+            taskItemOut->taskOperation = INPOUT_READ32_ACK;
+            taskItemOut->taskData = __indword(taskItemIn->taskPort);
+            break;
+        }
+        case INPOUT_WRITE32: {
+            taskItemOut->taskOperation = INPOUT_WRITE32_ACK;
+            __outdword(taskItemIn->taskPort, taskItemIn->taskData);
+            taskItemOut->taskData = 0x0;
+            break;
+        }
+        default: {
+            taskItemOut->taskOperation = INPOUT_IRQ_OCCURRED;
+            taskItemOut->taskPort = 0xaa;
+            taskItemOut->taskData = devContext->InterruptCount;
+            break;
+        }
+    }
+    return;
 }

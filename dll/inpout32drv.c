@@ -38,9 +38,13 @@ static BOOL   bx64                = FALSE;
 
 static drvInstState_t    drvState = DS_STARTUP;
 
-BOOL APIENTRY DllMain(HINSTANCE    hinstDll, 
-                      DWORD        fdwReason, 
-                      LPVOID    lpReserved)
+BOOL
+APIENTRY
+DllMain( 
+    HINSTANCE   hinstDll,
+    DWORD       fdwReason,
+    LPVOID      lpReserved
+)
 {
     UNREFERENCED_PARAMETER(lpReserved);
     
@@ -69,7 +73,10 @@ BOOL APIENTRY DllMain(HINSTANCE    hinstDll,
 
 /***********************************************************************/
 
-void drvClose(void)
+VOID
+drvClose (
+    VOID
+)
 {
     if (drvHandle)
     {
@@ -81,7 +88,10 @@ void drvClose(void)
 
 /*********************************************************************/
 
-int drvOpen(BOOL bX64, p_drvInstState_t pdrvState)
+int drvOpen (
+    BOOL bX64,
+    p_drvInstState_t pdrvState
+)
 {
     UNREFERENCED_PARAMETER(bX64);
     DWORD status = ERROR_FILE_NOT_FOUND;
@@ -191,7 +201,11 @@ int drvOpen(BOOL bX64, p_drvInstState_t pdrvState)
     return err;
 }
 
-BOOL _stdcall IsInpOutDriverOpen()
+BOOL
+WINAPI
+IsInpOutDriverOpen (
+    VOID
+)
 {
     if (drvState == DS_STARTED)
     {

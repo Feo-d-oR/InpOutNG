@@ -22,33 +22,103 @@ EXTERN_C HANDLE         hCompletionPort;
 EXTERN_C HANDLE         hCompletionThread;
 EXTERN_C DWORD          dwCompletionThreadId;
 
-BOOL _stdcall IsXP64Bit( void );
-BOOL DisableWOW64(PVOID* oldValue);
-BOOL RevertWOW64(PVOID* oldValue);
+BOOL
+WINAPI
+IsXP64Bit(
+	VOID
+);
 
-DWORD drvInst( p_drvInstState_t pdrvState );
-DWORD drvStart(LPCTSTR pszDriver);
-int drvOpen(BOOL bX64, p_drvInstState_t pdrvState);
-void drvClose( void );
+BOOL
+DisableWOW64 (
+	PVOID* oldValue
+);
 
-DWORD inpOutNGCreate(_In_opt_	LPCTSTR szDeviceDescription,
-					_In_		LPCTSTR szHwId,
-					_In_		LPCTSTR cabPath,
-					_Inout_		p_drvInstState_t pdrvState);
+BOOL
+RevertWOW64 (
+	PVOID* oldValue
+);
 
-void outmsg(_In_ const unsigned int flags, _In_ const TCHAR* format, ...);     /* should be called via msg above */
+DWORD
+drvInst (
+	p_drvInstState_t pdrvState
+);
 
-void outmsg_va(_In_ const unsigned int flags, _In_ const TCHAR* format, _In_ va_list arglist);
+DWORD
+drvStart (
+	LPCTSTR pszDriver
+);
 
-TCHAR* getCabFileName(void);
-TCHAR* getCabTmpDir(void);
-BOOL createTmpDir(void);
-BOOL unpackCabinet(void);
-BOOL removeTmpDir(void);
-DWORD drvInst();
+INT drvOpen(
+	BOOL bX64,
+	p_drvInstState_t pdrvState
+);
 
-BOOL isNotHandle(HANDLE h);
+VOID
+drvClose (
+	VOID
+);
 
-DWORD WINAPI CompletionPortThread(LPVOID PortHandle);
+DWORD
+inpOutNGCreate(
+	_In_opt_	LPCTSTR szDeviceDescription,
+	_In_		LPCTSTR szHwId,
+	_In_		LPCTSTR cabPath,
+	_Inout_		p_drvInstState_t pdrvState
+);
+
+VOID outmsg (
+	_In_ const unsigned int flags,
+	_In_ const TCHAR* format,
+	...
+);     /* should be called via msg above */
+
+VOID outmsg_va (
+	_In_ const unsigned int flags,
+	_In_ const TCHAR* format,
+	_In_ va_list arglist
+);
+
+TCHAR*
+getCabFileName (
+	VOID
+);
+
+TCHAR*
+getCabTmpDir ( 
+	VOID
+);
+
+
+BOOL
+createTmpDir (
+	VOID
+);
+
+BOOL
+unpackCabinet (
+	VOID
+);
+
+BOOL
+removeTmpDir ( 
+	VOID
+);
+
+DWORD
+drvInst (
+	p_drvInstState_t pdrvState
+);
+
+
+BOOL
+isNotHandle (
+	HANDLE h
+);
+
+DWORD
+WINAPI
+CompletionPortThread ( 
+	LPVOID PortHandle
+);
 
 EXTERN_C_END

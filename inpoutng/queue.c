@@ -76,13 +76,13 @@ inpOutNgQueueInitialize(
     //
     queueConfig.PowerManaged = WdfFalse;
     
-    //queueConfig.EvtIoStop = inpOutNgEvtIoStop;
+    queueConfig.EvtIoStop = inpOutNgEvtIoStop;
 
     status = WdfIoQueueCreate(
         Device,
         &queueConfig,
         WDF_NO_OBJECT_ATTRIBUTES,
-        WDF_NO_HANDLE
+        &devContext->cntrlQueue
         );
 
     if(!NT_SUCCESS(status)) {
@@ -159,14 +159,18 @@ inpOutNgEvtIoDeviceControl(
     
     NTSTATUS            status = STATUS_UNSUCCESSFUL;
     size_t              opInfo = 0;
-    size_t              inBuffersize = 0;
-    size_t              outBuffersize = 0;
+    size_t              inBufferSize = 0;
+    size_t              outBufferSize = 0;
 
     p_inPortData_t      inData = NULL;
     outPortData_t       outData = { .val.outLong = 0x0 };
 
-    PULONG              inBuf = NULL;
-    PULONG              outBuf = NULL;
+    PULONG              inBuf   = NULL;
+    PULONG              outBuf  = NULL;
+    p_port_task_t       taskPtr = NULL;
+    ULONG               taskLen = 0;
+    ULONG               taskMax = 0;
+    ULONG               taskSeq = 0;
     PINPOUTNG_CONTEXT   devContext;
 
     // Получение ссылки на контекст устройства через идентификатор очереди...
@@ -186,13 +190,13 @@ inpOutNgEvtIoDeviceControl(
         // pointer (Irp->AssociatedIrp.SystemBuffer), so read the
         // content of the buffer.
         //
-        status = WdfRequestRetrieveInputBuffer(Request, 0, &inBuf, &inBuffersize);
+        status = WdfRequestRetrieveInputBuffer(Request, 0, &inBuf, &inBufferSize);
         if (!NT_SUCCESS(status)) {
             status = STATUS_INSUFFICIENT_RESOURCES;
         }
 
         // Проверить, что система правильно посчитала размер входного буфера
-        ASSERT(inBuffersize >= InputBufferLength);
+        ASSERT(inBufferSize >= InputBufferLength);
 
         // И указатель на него не нулевой
         ASSERT(inBuf != NULL);
@@ -200,7 +204,7 @@ inpOutNgEvtIoDeviceControl(
         // «Сослать» на входной буфер типизированный указатель для последующего разбора */
         inData = (p_inPortData_t)inBuf;
 
-        //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data from User : (0x%p) 0x%08x\n", inBuf, *inBuf);
+        //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data from User : (0x%p) 0x%08x\n", inBufferPtr, *inBufferPtr);
 
         // 
         // Если длина выходного буфера не ноль, требуется получить указатель на него и проверить,
@@ -208,20 +212,20 @@ inpOutNgEvtIoDeviceControl(
         //
         if (OutputBufferLength != 0)
         {
-            status = WdfRequestRetrieveOutputBuffer(Request, 0, &outBuf, &outBuffersize);
+            status = WdfRequestRetrieveOutputBuffer(Request, 0, &outBuf, &outBufferSize);
             if (!NT_SUCCESS(status)) {
                 status = STATUS_INSUFFICIENT_RESOURCES;
             }
-            ASSERT(outBuffersize >= OutputBufferLength);
+            ASSERT(outBufferSize >= OutputBufferLength);
             ASSERT(outBuf != NULL);
-            //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data to User : (0x%p)\n", outBuf);
+            //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Data to User : (0x%p)\n", outBufferPtr);
         }
     }
 
     switch (IoControlCode)
     {
         case IOCTL_READ_PORT_UCHAR: {
-            if (!checkIOBuffers(inBuffersize, outBuffersize))
+            if (!checkIOBuffers(inBufferSize, outBufferSize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -238,7 +242,7 @@ inpOutNgEvtIoDeviceControl(
         }
 
         case IOCTL_WRITE_PORT_UCHAR: {
-            if (!checkInBuffer(inBuffersize))
+            if (!checkInBuffer(inBufferSize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -255,7 +259,7 @@ inpOutNgEvtIoDeviceControl(
         }
                
         case IOCTL_READ_PORT_USHORT: {
-            if (!checkIOBuffers(inBuffersize, outBuffersize))
+            if (!checkIOBuffers(inBufferSize, outBufferSize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -272,7 +276,7 @@ inpOutNgEvtIoDeviceControl(
         }
 
         case IOCTL_WRITE_PORT_USHORT: {
-            if (!checkInBuffer(inBuffersize))
+            if (!checkInBuffer(inBufferSize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -289,7 +293,7 @@ inpOutNgEvtIoDeviceControl(
         }
 
         case IOCTL_READ_PORT_ULONG: {
-            if (!checkIOBuffers(inBuffersize, outBuffersize))
+            if (!checkIOBuffers(inBufferSize, outBufferSize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -306,7 +310,7 @@ inpOutNgEvtIoDeviceControl(
         }
 
         case IOCTL_WRITE_PORT_ULONG: {
-            if (!checkInBuffer(inBuffersize))
+            if (!checkInBuffer(inBufferSize))
             {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
@@ -330,9 +334,9 @@ inpOutNgEvtIoDeviceControl(
             // перед перенаправлением запроса в очередь ожидания.
             // 
             if ( InputBufferLength != 0) {
-                if ((((int)inBuffersize / sizeof(port_task_t)) > 0)
+                if ((((int)inBufferSize / sizeof(port_task_t)) > 0)
                     &&
-                    (!(outBuffersize >= sizeof(port_task_t)))) {
+                    (!(outBufferSize >= sizeof(port_task_t)))) {
 
                     opInfo = 0;
                     status = STATUS_BUFFER_TOO_SMALL;
@@ -341,7 +345,7 @@ inpOutNgEvtIoDeviceControl(
             }
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
                         "%!FUNC! ---> IOCTL_REGISTER_IRQ, (ptrin==%p, listin=%d, ptrout==%p, listout==%d)\n",
-                        inBuf, (int)inBuffersize / sizeof(port_task_t), outBuf, (int)outBuffersize / sizeof(port_task_t));
+                        inBuf, (int)inBufferSize / sizeof(port_task_t), outBuf, (int)outBufferSize / sizeof(port_task_t));
             
             status = WdfRequestForwardToIoQueue(Request,
                 devContext->asyncQueue);
@@ -374,7 +378,7 @@ inpOutNgEvtIoDeviceControl(
         }
 
         case IOCTL_GET_DRVINFO: {
-            if (!(outBuffersize >= sizeof(outPortData_t))) {
+            if (!(outBufferSize >= sizeof(outPortData_t))) {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
             }
@@ -387,13 +391,32 @@ inpOutNgEvtIoDeviceControl(
         }
 
         case IOCTL_GET_IRQCOUNT: {
-            if (!(outBuffersize >= sizeof(outPortData_t))) {
+            if (!(outBufferSize >= sizeof(outPortData_t))) {
                 opInfo = 0;
                 status = STATUS_BUFFER_TOO_SMALL;
             }
             else {
                 outData.val.outLong = devContext->InterruptCount;
                 opInfo = sizeof(ULONG);
+                status = STATUS_SUCCESS;
+            }
+            break;
+        }
+
+        case IOCTL_SET_IRQCLEAR: {
+            if (!(inBufferSize >= sizeof(port_task_t))) {
+                opInfo = 0;
+                status = STATUS_BUFFER_TOO_SMALL;
+            }
+            else {
+                taskLen = (ULONG)inBufferSize / sizeof(port_task_t);
+                taskMax = sizeof(devContext->irqClearSeq) / sizeof(port_task_t);
+                taskLen = (taskLen > taskMax) ? taskMax : taskLen;
+                for (taskSeq = 0, taskPtr = (p_port_task_t)inBuf; taskSeq < taskLen; taskSeq++, taskPtr++) {
+                    devContext->irqClearSeq[taskSeq] = *taskPtr;
+                }
+                devContext->irqClearSize = taskLen;
+                opInfo = inBufferSize;
                 status = STATUS_SUCCESS;
             }
             break;
@@ -408,10 +431,10 @@ inpOutNgEvtIoDeviceControl(
 
     }
     
-    if ((opInfo > 0) && (outBuffersize >= opInfo))
+    if ((opInfo > 0) && (outBufferSize >= opInfo))
     {
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! Committing data to User: (P=0x%p, S=%d bytes), Status=0x%x, opSize=%d\n",
-            outBuf, (int)outBuffersize, status, (UINT32)opInfo);
+            outBuf, (int)outBufferSize, status, (UINT32)opInfo);
         RtlCopyMemory(outBuf, &outData, opInfo);
     }
 
@@ -489,30 +512,30 @@ inpOutNgEvtIoStop(
 
 /**
  * @brief Функция обработчика очереди асинхронных уведомлений
- * @param DevContext — Дескриптор данных устройства
+ * @param devContext — Дескриптор данных устройства
 */
 VOID
-inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
+inpOutNgNotify( _In_ PINPOUTNG_CONTEXT devContext)
 {
     NTSTATUS      status=STATUS_ABANDONED;
     ULONG         opInfo=0;
     WDFREQUEST    notifyRequest;
 
-    PULONG        inBuf = NULL;
-    size_t        inBufferSize=0;
-    p_port_task_t inTask=NULL;
+    PULONG        inBufferPtr = NULL;
+    size_t        inBufferLen=0;
+    p_port_task_t inTaskPtr=NULL;
 
-    PULONG        outBuf = NULL;
-    size_t        outBufferSize=0;
-    p_port_task_t outTask=NULL;
+    PULONG        outBufferPtr = NULL;
+    size_t        outBufferLen=0;
+    p_port_task_t outTaskPtr=NULL;
 
-    size_t        taskSize=0;
-    INT           i=0;
+    size_t        taskAmount=0;
+    INT           taskItem=0;
 
     //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---> Got in\n");
 
     status = WdfIoQueueRetrieveNextRequest(
-        DevContext->asyncQueue,
+        devContext->asyncQueue,
         &notifyRequest);
 
     //
@@ -537,7 +560,7 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
     // Аналогично с «общей» очередь.
     // 
 
-    status = WdfRequestRetrieveInputBuffer(notifyRequest, 0, &inBuf, &inBufferSize);
+    status = WdfRequestRetrieveInputBuffer(notifyRequest, 0, &inBufferPtr, &inBufferLen);
     //
     // Проверка на наличие входного буфера
     // 
@@ -555,20 +578,20 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
     status = STATUS_INSUFFICIENT_RESOURCES;
     opInfo = 0;
     
-    if (inBufferSize > 0) {
+    if (inBufferLen > 0) {
         // Проверить, что размер входного буфера больше 32-х разрядов
-        if (inBufferSize < sizeof(port_task_t)) {
-            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer too small (%d bytes)! Exiting.\n", (int)inBufferSize);
+        if (inBufferLen < sizeof(port_task_t)) {
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer too small (%d bytes)! Exiting.\n", (int)inBufferLen);
             goto queue_completion;
         }
 
         // Проверить, что указатель на буфер не нулевой
-        if (inBuf == NULL) {
+        if (inBufferPtr == NULL) {
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Input task buffer pointer is NULL! Exiting.\n");
             goto queue_completion;
         }
 
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Data from User : 0x%p, %d bytes\n", inBuf, (int)inBufferSize);
+        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Data from User : 0x%p, %d bytes\n", inBufferPtr, (int)inBufferLen);
     }
     else {
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Zero-sized request, notify only\n");
@@ -578,87 +601,56 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
     // AND we retrieved an output buffer into which to return some
     // additional information.
     // 
-    status = WdfRequestRetrieveOutputBuffer(notifyRequest, 0, &outBuf, &outBufferSize);
+    status = WdfRequestRetrieveOutputBuffer(notifyRequest, 0, &outBufferPtr, &outBufferLen);
     if (!NT_SUCCESS(status)) {
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- No output task buffer found! Exiting.\n");
         goto queue_completion;
     }
 
-    if (inBufferSize > 0) {
+    if (inBufferLen > 0) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         opInfo = 0;
-        if (outBufferSize != inBufferSize) {
+        if (outBufferLen != inBufferLen) {
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
                 "%!FUNC! ---- Input / Output buffers size mismatch (%d != %d)! Exiting.\n",
-                (int)inBufferSize, (int)outBufferSize);
+                (int)inBufferLen, (int)outBufferLen);
             goto queue_completion;
         }
 
-        if (outBuf == NULL) {
+        if (outBufferPtr == NULL) {
             TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Output task buffer pointer is NULL! Exiting.\n");
             goto queue_completion;
         }
 
-        inTask = (p_port_task_t)inBuf;
-        outTask = (p_port_task_t)outBuf;
+        inTaskPtr = (p_port_task_t)inBufferPtr;
+        outTaskPtr = (p_port_task_t)outBufferPtr;
+
+        if (!inTaskPtr || !outTaskPtr) {
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Task buffers pointer are NULL after type casting! Exiting.\n");
+            goto queue_completion;
+        }
     }
     else {
         TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! Zero-sized request, not dealing with output\n");
     }
 
-    taskSize = inBufferSize / sizeof(port_task_t);
+    taskAmount = inBufferLen / sizeof(port_task_t);
 
-    //TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Got %d tasks in list, proceeding...\n", (int)taskSize);
+    TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC, "%!FUNC! ---- Got %d tasks in list...\n", (int)taskAmount);
 
-    for (i = 0; i < (INT)taskSize; i++)
+    for (taskItem = 0; taskItem < (INT)taskAmount; taskItem++, inTaskPtr++, outTaskPtr++)
     {
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
-                    "%!FUNC! ----> parsing task: code==0x%04x, port==0x%04x, data==0x%08x\n",
-                    inTask[i].taskOperation, inTask[i].taskPort, inTask[i].taskData);
-        switch (inTask[i].taskOperation) {
-            case INPOUT_READ8: {
-                outTask[i].taskOperation = INPOUT_READ8_ACK;
-                outTask[i].taskData = __inbyte(inTask[i].taskPort);
-                break;
-            }
-            case INPOUT_WRITE8: {
-                outTask[i].taskOperation = INPOUT_WRITE8_ACK;
-                __outbyte(inTask[i].taskPort, (BYTE)(inTask[i].taskData & 0x000000ff));
-                outTask[i].taskData = 0x0;
-                break;
-            }
-            case INPOUT_READ16: {
-                outTask[i].taskOperation = INPOUT_READ16_ACK;
-                outTask[i].taskData = __inword(inTask[i].taskPort);
-                break;
-            }
-            case INPOUT_WRITE16: {
-                outTask[i].taskOperation = INPOUT_WRITE16_ACK;
-                __outword(inTask[i].taskPort, (USHORT)(inTask[i].taskData & 0x0000ffff));
-                outTask[i].taskData = 0x0;
-                break;
-            }
-            case INPOUT_READ32: {
-                outTask[i].taskOperation = INPOUT_READ32_ACK;
-                outTask[i].taskData = __indword(inTask[i].taskPort);
-                break;
-            }
-            case INPOUT_WRITE32: {
-                outTask[i].taskOperation = INPOUT_WRITE32_ACK;
-                __outdword(inTask[i].taskPort, inTask[i].taskData);
-                outTask[i].taskData = 0x0;
-                break;
-            }
-            default: {
-                outTask[i].taskOperation = INPOUT_IRQ_OCCURRED;
-                outTask[i].taskPort = 0xAA;
-                outTask[i].taskData = DevContext->InterruptCount;
-                break;
-            }
+        if (inTaskPtr && (inBufferLen >= (taskItem* sizeof(port_task_t)))) {
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                "%!FUNC! ----> parsing task: code==0x%04x, port==0x%04x, data==0x%08x\n",
+                inTaskPtr->taskOperation, inTaskPtr->taskPort, inTaskPtr->taskData);
         }
-        TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
-            "%!FUNC! <---- parsed task: code==0x%04x, port==0x%04x, data==0x%08x\n",
-            outTask[i].taskOperation, outTask[i].taskPort, outTask[i].taskData);
+        doTask(devContext, inTaskPtr, outTaskPtr);
+        if (outTaskPtr && (outBufferLen >= (taskItem * sizeof(port_task_t)))) {
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
+                "%!FUNC! <---- parsed task: code==0x%04x, port==0x%04x, data==0x%08x\n",
+                outTaskPtr->taskOperation, outTaskPtr->taskPort, outTaskPtr->taskData);
+        }
 
     }
     //
@@ -666,7 +658,7 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
     // we're returning a longword of data in the user's OutBuffer
     // 
     status = STATUS_SUCCESS;
-    opInfo = (ULONG)inBufferSize;
+    opInfo = (ULONG)inBufferLen;
 
     //
     // And now... NOTIFY the user about the event.  We do this just
@@ -675,7 +667,7 @@ inpOutNgNotify(PINPOUTNG_CONTEXT DevContext)
 queue_completion:
     TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_ASYNC,
                 "%!FUNC! <--- Notifying User: (P=0x%p, S=%d bytes), Status=0x%x, opSize=%d\n",
-                outBuf, (int)outBufferSize, status, (UINT32)opInfo);
+                outBufferPtr, (int)outBufferLen, status, (UINT32)opInfo);
     WdfRequestCompleteWithInformation(notifyRequest, status, opInfo);
 
 }

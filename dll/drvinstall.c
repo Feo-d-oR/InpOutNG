@@ -37,11 +37,13 @@
  *
  * @return ERROR_SUCCESS on success; Win32 error code otherwise
  **/
-static DWORD
+static
+DWORD
 check_reboot(
     _In_ HDEVINFO hDeviceInfoSet,
     _In_ PSP_DEVINFO_DATA pDeviceInfoData,
-    _Inout_ LPBOOL pbRebootRequired)
+    _Inout_ LPBOOL pbRebootRequired
+)
 {
     if (pbRebootRequired == NULL)
     {
@@ -73,7 +75,8 @@ inpOutNGCreate(
     _In_opt_    LPCTSTR szDeviceDescription,
     _In_        LPCTSTR szHwId,
     _In_        LPCTSTR cabPath,
-    _Inout_        p_drvInstState_t pdrvState)
+    _Inout_        p_drvInstState_t pdrvState
+)
 {
     DWORD    dwResult = ERROR_SUCCESS;
     DWORD    drvInstFlags = DIIRFLAG_FORCE_INF /* | DIIRFLAG_INSTALL_AS_SET */ | DIIRFLAG_PRE_CONFIGURE_INF;
@@ -262,7 +265,10 @@ cleanup_hDevInfoList:
 }
 
 /***********************************************************************/
-DWORD drvInst(p_drvInstState_t pdrvState)
+DWORD
+drvInst(
+    p_drvInstState_t pdrvState
+)
 {
     DWORD result = ERROR_FAILED_DRIVER_ENTRY;
     if (!unpackCabinet())

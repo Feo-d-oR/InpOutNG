@@ -48,8 +48,18 @@ EXTERN_C_START
 #define dmsg(flags, ...)
 #endif
 
-void outmsg(const unsigned int flags, const TCHAR* format, ...);     /* should be called via msg above */
+VOID
+outmsg (
+    const unsigned int flags,
+    const TCHAR* format,
+    ...
+);     /* should be called via msg above */
 
-void outmsg_va(const unsigned int flags, const TCHAR* format, va_list arglist);
+VOID
+outmsg_va (
+    const unsigned int flags,
+    const TCHAR* format,
+    va_list arglist
+);
 
 EXTERN_C_END

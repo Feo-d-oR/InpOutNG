@@ -9,17 +9,26 @@ static TCHAR expandParams[MAX_PATH] = { 0x0 };
 static TCHAR expandFile[MAX_PATH] = { 0x0 };
 static TCHAR expandDir[MAX_PATH] = { 0x0 };
 
-TCHAR* getCabFileName( void )
+TCHAR*
+getCabFileName (
+    VOID
+)
 {
     return fileName;
 }
 
-TCHAR* getCabTmpDir( void )
+TCHAR*
+getCabTmpDir (
+    VOID
+)
 {
     return tmpDir;
 }
 
-BOOL createTmpDir( void )
+BOOL
+createTmpDir (
+    VOID
+)
 {
     BOOL result = FALSE;
     TCHAR dirName[MAX_PATH];
@@ -47,18 +56,24 @@ BOOL createTmpDir( void )
     return result;
 }
 
-BOOL isNotHandle(HANDLE h)
+BOOL
+isNotHandle (
+    HANDLE h
+)
 {
     return (h == NULL || h == INVALID_HANDLE_VALUE);
 }
 
-BOOL unpackCabinet(void)
+BOOL
+unpackCabinet (
+    VOID
+)
 {
     BOOL result            = FALSE;
     HRSRC dllCabFile    = INVALID_HANDLE_VALUE;
     HGLOBAL cabResource = INVALID_HANDLE_VALUE;
     HANDLE cabFile        = INVALID_HANDLE_VALUE;
-    void* cabData        = NULL;
+    VOID* cabData        = NULL;
     
     DWORD cabSize        = 0x0;
     DWORD szWrote        = 0x0;
@@ -174,7 +189,10 @@ BOOL unpackCabinet(void)
     return result;
 }
 
-BOOL removeTmpDir(void)
+BOOL
+removeTmpDir (
+    VOID
+)
 {
     STARTUPINFO si;
     PROCESS_INFORMATION pi;

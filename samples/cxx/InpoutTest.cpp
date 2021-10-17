@@ -5,10 +5,10 @@
 #include "windows.h"
 #include "stdio.h"
 
-typedef void	(__stdcall *lpOut16)(USHORT, USHORT);
-typedef USHORT	(__stdcall *lpInp16)(USHORT);
-typedef BOOL	(__stdcall *lpIsInpOutDriverOpen)(void);
-typedef BOOL	(__stdcall *lpIsXP64Bit)(void);
+typedef VOID	(WINAPI *lpOut16)(USHORT, USHORT);
+typedef USHORT	(WINAPI *lpInp16)(USHORT);
+typedef BOOL	(WINAPI *lpIsInpOutDriverOpen)(VOID);
+typedef BOOL	(WINAPI *lpIsXP64Bit)(VOID);
 
 //Some global function pointers (messy but fine for an example)
 lpOut16 gfpOut16;
@@ -20,7 +20,7 @@ const USHORT beeper = USHORT(0x42);
 const USHORT ctlPit = USHORT(0x43);
 const USHORT ctlKbd = USHORT(0x61);
 
-void Beep(USHORT freq)
+VOID Beep(USHORT freq)
 {
 	gfpOut16(ctlPit, USHORT(0xB6));
 	gfpOut16(beeper, USHORT(freq & USHORT(0xFF)));
@@ -29,7 +29,7 @@ void Beep(USHORT freq)
 	gfpOut16(ctlKbd, gfpInp16(ctlKbd) | USHORT(0x03));
 }
 
-void StopBeep()
+VOID StopBeep()
 {
 	gfpOut16(ctlKbd, (gfpInp16(ctlKbd) & USHORT(0xFC)));
 }

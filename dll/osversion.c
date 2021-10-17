@@ -5,7 +5,11 @@ typedef BOOL (WINAPI *LPFN_WOW64DISABLE) (PVOID*);
 typedef BOOL (WINAPI *LPFN_WOW64REVERT) (PVOID);
 
 //Purpose: Return TRUE if we are running in WOW64 (i.e. a 32bit process on XP x64 edition)
-BOOL _stdcall IsXP64Bit()
+BOOL
+WINAPI
+IsXP64Bit (
+    VOID
+)
 {
 #ifdef _M_X64
     return TRUE;    //Urrr if its a x64 build of the DLL, we MUST be running on X64 nativly!
@@ -23,7 +27,10 @@ BOOL _stdcall IsXP64Bit()
 #endif
 }
 
-BOOL DisableWOW64(PVOID* oldValue)
+BOOL
+DisableWOW64 (
+    PVOID* oldValue
+)
 {
 #ifdef _M_X64
     UNREFERENCED_PARAMETER(oldValue);
@@ -34,7 +41,10 @@ BOOL DisableWOW64(PVOID* oldValue)
 #endif
 }
 
-BOOL RevertWOW64(PVOID* oldValue)
+BOOL
+RevertWOW64 (
+    PVOID* oldValue
+)
 {
 #ifdef _M_X64
     UNREFERENCED_PARAMETER(oldValue);

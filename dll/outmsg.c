@@ -4,8 +4,12 @@
 
 static TCHAR messageBuffer[MAX_PATH] = { 0x0 };
 
-void
-outmsg_va(const unsigned int flags, const TCHAR* format, va_list arglist)
+VOID
+outmsg_va (
+    const unsigned int flags,
+    const TCHAR* format,
+    va_list arglist
+)
 {
     int        charCount =  0;
     /* Output message string. Note: Message strings don't contain line terminators. */
@@ -61,8 +65,12 @@ outmsg_va(const unsigned int flags, const TCHAR* format, va_list arglist)
     }
 }
 
-void
-outmsg(const unsigned int flags, const TCHAR* format, ...)
+VOID
+outmsg (
+    const unsigned int flags,
+    const TCHAR* format,
+    ...
+)
 {
     va_list arglist;
     va_start(arglist, format);

@@ -10,10 +10,9 @@ outp32					@6
 IsInpOutDriverOpen		@7
 IsXP64Bit				@8
 
-registerWmNotify		@9
-getWmNotify				@10
-waitForIrq				@11
-requestIrqNotify		@12
-forceNotify				@13
+waitForIrq				@9
+doOnIrq                 @10
+forceNotify				@11
 
-irqCount                @14
+irqCount                @12
+setIrqClearSeq          @13

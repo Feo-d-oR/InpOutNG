@@ -11,12 +11,12 @@
 
 #define ARRAY_SIZE(x) ( sizeof (x) / sizeof(x[0]) )
 
-typedef BOOL (_stdcall* lpWaitForIrq)(_In_    p_port_task_t inTask,
+typedef BOOL (WINAPI* lpWaitForIrq)(_In_    p_port_task_t inTask,
 									  _In_    DWORD inTaskSize,
 									  _Inout_ p_port_task_t outTask,
 									  _In_    DWORD outTaskSize);
 
-typedef BOOL(__stdcall* lpIsInpOutDriverOpen)(void);
+typedef BOOL(_WINAPI* lpIsInpOutDriverOpen)(VOID);
 
 //Some global function pointers (messy but fine for an example)
 lpIsInpOutDriverOpen gfpIsInpOutDriverOpen;

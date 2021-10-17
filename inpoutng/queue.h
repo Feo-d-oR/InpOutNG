@@ -108,10 +108,10 @@ EVT_WDF_IO_QUEUE_IO_STOP inpOutNgEvtIoStop;
 
 /**
  * @brief ‘ункци€ обработчика очереди асинхронных уведомлений
- * @param DevContext Ч ƒескриптор данных устройства
+ * @param devContext Ч ƒескриптор данных устройства
 */
 VOID
 inpOutNgNotify(
-    IN PINPOUTNG_CONTEXT DevContext
+    _In_ PINPOUTNG_CONTEXT devContext
 );
 EXTERN_C_END

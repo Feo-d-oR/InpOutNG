@@ -129,9 +129,9 @@ Return Value:
     WDFDEVICE                    device;
     PINPOUTNG_CONTEXT              devContext = NULL;
 
-    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "--> %!FUNC!");
-
     PAGED_CODE();
+
+    TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_DRIVER, "--> %!FUNC!");
 
     WdfDeviceInitSetIoType(DeviceInit, WdfDeviceIoDirect);
 
@@ -200,8 +200,11 @@ Return Value:
     //
     devContext = inpOutNgGetContext(device);
 
-    devContext->Device = device;
-    devContext->inpOutNgVersion = INPOUTNG_VERSION(2, 1, 0);
+    devContext->Device          = device;
+    devContext->inpOutNgVersion = INPOUTNG_VERSION(2, 5, 1);
+    
+    devContext->irqClearSize = 0;
+    RtlZeroBytes(&devContext->irqClearSeq, sizeof(devContext->irqClearSeq));
 
     TraceEvents(TRACE_LEVEL_INFORMATION,
                 TRACE_DRIVER,

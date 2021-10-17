@@ -1,6 +1,6 @@
 /*++
 
-Copyright (c) Gvozdev A. Feodor.  All rights reserved.
+    Copyright (c) Gvozdev A. Feodor.  All rights reserved.
 
     THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
     KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
@@ -27,7 +27,7 @@ Environment:
 
 NTSTATUS
 inpOutNgInterruptCreate(
-    IN PINPOUTNG_CONTEXT DevExt
+    _In_ PINPOUTNG_CONTEXT devContext
 )
 /*++
 Routine Description:
@@ -47,27 +47,19 @@ Return Value:
 {
     NTSTATUS                    status;
     WDF_INTERRUPT_CONFIG        IsrConfig;
-    WDF_OBJECT_ATTRIBUTES       IsrLockAttr;
+    //WDF_OBJECT_ATTRIBUTES       IsrLockAttr;
 
     WDF_INTERRUPT_CONFIG_INIT(&IsrConfig,
         inpOutNgEvtInterruptIsr,
         inpOutNgEvtInterruptDpc);
-
-    WDF_OBJECT_ATTRIBUTES_INIT(&IsrLockAttr);
-    IsrLockAttr.ParentObject = DevExt->Interrupt;
-    status = WdfSpinLockCreate(&IsrLockAttr, &DevExt->IsrLock);
-    if (!NT_SUCCESS(status)) {
-        TraceEvents(TRACE_LEVEL_ERROR, TRACE_IRQ,
-            "WdfIsrLockCreate failed: %!STATUS!", status);
-    }
 
     IsrConfig.EvtInterruptEnable = inpOutNgEvtInterruptEnable;
     IsrConfig.EvtInterruptDisable = inpOutNgEvtInterruptDisable;
 
     IsrConfig.AutomaticSerialization = TRUE;
     IsrConfig.ShareVector = TRUE;
-    
-    IsrConfig.SpinLock = DevExt->IsrLock;
+
+    //IsrConfig.SpinLock = DevExt->IsrLock;
 
     //
     // Unlike WDM, framework driver should create interrupt object in EvtDeviceAdd and
@@ -77,23 +69,31 @@ Return Value:
     // the interrupt interrupt is connected and EvtInterruptDisable before the interrupt is
     // disconnected.
     //
-    status = WdfInterruptCreate(DevExt->Device,
+    status = WdfInterruptCreate(devContext->Device,
         &IsrConfig,
         WDF_NO_OBJECT_ATTRIBUTES,
-        &DevExt->Interrupt);
+        &devContext->Interrupt);
 
     if (!NT_SUCCESS(status)) {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_IRQ,
             "WdfInterruptCreate failed: %!STATUS!", status);
     }
 
+    //WDF_OBJECT_ATTRIBUTES_INIT(&IsrLockAttr);
+    //IsrLockAttr.ParentObject = DevExt->Interrupt;
+    //status = WdfSpinLockCreate(&IsrLockAttr, &DevExt->IsrLock);
+    //if (!NT_SUCCESS(status)) {
+    //    TraceEvents(TRACE_LEVEL_ERROR, TRACE_IRQ,
+    //        "WdfIsrLockCreate failed: %!STATUS!", status);
+    //}
+
     return status;
 }
 
 BOOLEAN
 inpOutNgEvtInterruptIsr(
-    IN WDFINTERRUPT Interrupt,
-    IN ULONG        MessageID
+    _In_ WDFINTERRUPT Interrupt,
+    _In_ ULONG        MessageID
 )
 /*++
 Routine Description:
@@ -119,18 +119,21 @@ Return Value:
 
 --*/
 {
-    PINPOUTNG_CONTEXT   devExt    = NULL;
-    BOOLEAN             irqQueued = FALSE;
-
+    PINPOUTNG_CONTEXT   devContext  = NULL;
+    BOOLEAN             irqQueued   = FALSE;
+    ULONG               seq         = 0;
     UNREFERENCED_PARAMETER(MessageID);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ, "--> InpOutNgInterruptHandler");
 
-    devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
+    devContext = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
-    if (devExt) {
-        __outbyte((USHORT)0x333, (UCHAR)0xff);   // снять прерывание
-        irqQueued = WdfInterruptQueueDpcForIsr(devExt->Interrupt);
+    if (devContext) {
+        for (seq = 0; seq < devContext->irqClearSize; seq++) {
+            doTask(devContext, &devContext->irqClearSeq[seq], &devContext->irqClearAck[seq]);
+        }
+        //__outbyte((USHORT)0x333, (UCHAR)0xff);   // снять прерывание
+        irqQueued = WdfInterruptQueueDpcForIsr(devContext->Interrupt);
     }
     else {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_IRQ, "%!FUNC! No Device extension!");
@@ -169,11 +172,6 @@ Return Value:
 
     PINPOUTNG_CONTEXT        devContext;
 
-    //
-    // Acquire this device's InterruptSpinLock.
-    //
-    //WdfInterruptAcquireLock(Interrupt);
-
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "--> %!FUNC!");
 
     devContext = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
@@ -188,7 +186,6 @@ Return Value:
     else {
         TraceEvents(TRACE_LEVEL_WARNING, TRACE_IRQ_DPC, "%!FUNC! No Device extension!");
     }
-    //WdfInterruptReleaseLock(Interrupt);
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ_DPC, "<-- %!FUNC!");
 
@@ -197,8 +194,8 @@ Return Value:
 
 NTSTATUS
 inpOutNgEvtInterruptEnable(
-    IN WDFINTERRUPT Interrupt,
-    IN WDFDEVICE    Device
+    _In_ WDFINTERRUPT Interrupt,
+    _In_ WDFDEVICE    Device
 )
 /*++
 
@@ -212,20 +209,20 @@ Return Value:
     NTSTATUS
 --*/
 {
-    PINPOUTNG_CONTEXT  devExt;
+    PINPOUTNG_CONTEXT  devContext;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
         "%!FUNC!: Interrupt 0x%p, Device 0x%p\n",
         Interrupt, Device);
 
-    devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
+    devContext = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
 /*
-    intCSR.ulong = READ_REGISTER_ULONG((PULONG)&devExt->Regs->Int_Csr);
+    intCSR.ulong = READ_REGISTER_ULONG((PULONG)&devContext->Regs->Int_Csr);
 
     intCSR.bits.PciIntEnable = TRUE;
 
-    WRITE_REGISTER_ULONG((PULONG)&devExt->Regs->Int_Csr,
+    WRITE_REGISTER_ULONG((PULONG)&devContext->Regs->Int_Csr,
         intCSR.ulong);
 */
     return STATUS_SUCCESS;
@@ -233,8 +230,8 @@ Return Value:
 
 NTSTATUS
 inpOutNgEvtInterruptDisable(
-    IN WDFINTERRUPT Interrupt,
-    IN WDFDEVICE    Device
+    _In_ WDFINTERRUPT Interrupt,
+    _In_ WDFDEVICE    Device
 )
 /*++
 
@@ -248,13 +245,13 @@ Return Value:
     NTSTATUS
 --*/
 {
-    PINPOUTNG_CONTEXT  devExt;
+    PINPOUTNG_CONTEXT  devContext;
 
     TraceEvents(TRACE_LEVEL_INFORMATION, TRACE_IRQ,
         "%!FUNC!: Interrupt 0x%p, Device 0x%p\n",
         Interrupt, Device);
 
-    devExt = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
+    devContext = inpOutNgGetContext(WdfInterruptGetDevice(Interrupt));
 
     return STATUS_SUCCESS;
 }
