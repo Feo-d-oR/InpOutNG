@@ -1,9 +1,10 @@
 # InpOutNG
 Next-generation of inpout32 driver &amp; library package
 
-InpOut32 is an open source windows DLL and Driver to give direct access to hardware ports (for example the parallel and serial port from user level programs. It is originally developed by the people at Logix4U for Windows 9x and 32bit variations of NT (NT/2000/XP/2003 etc.).
-Next, the work was continued by <a href="https://www.highrez.co.uk/">Philip Gibbons</a>
-It 2021 the project development continues and some new features are introduced.
+InpOutNG is an open source windows DLL and Driver to give direct access to hardware ports (for example the parallel and serial port from user level programs.
+It is originally developed by the people at Logix4U for Windows 9x and 32bit variations of NT (NT/2000/XP/2003 etc.).
+Next, the work was continued by <a href="https://www.highrez.co.uk/">Philip Gibbons</a> and is well-known as <a href="https://www.highrez.co.uk/downloads/inpout32/default.htm">inpout32</a>
+It 2021 the project development continues here and some new features are introduced.
 
 ### Requirements
 - Windows 32 or 64-bit (tested on Windows 7 and 10)
