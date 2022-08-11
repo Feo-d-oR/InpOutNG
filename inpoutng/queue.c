@@ -422,6 +422,34 @@ inpOutNgEvtIoDeviceControl(
             break;
         }
 
+        case IOCTL_DO_TASK: {
+
+            //
+            // ¬озвращаемые значени€ кратны типу элемента задани€,
+            // необходимо проверить, что выходной буфер кратен данному значению
+            // перед перенаправлением запроса в очередь ожидани€.
+            // 
+            if (InputBufferLength != 0) {
+                if ((((int)inBufferSize / sizeof(port_task_t)) > 0)
+                    &&
+                    (!(outBufferSize >= sizeof(port_task_t)))) {
+
+                    opInfo = 0;
+                    status = STATUS_BUFFER_TOO_SMALL;
+                    break;
+                }
+            }
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL,
+                "%!FUNC! ---> IOCTL_DO_TASK, (ptrin==%p, listin=%d, ptrout==%p, listout==%d)\n",
+                inBuf, (int)inBufferSize / sizeof(port_task_t), outBuf, (int)outBufferSize / sizeof(port_task_t));
+            doTask(devContext, (p_port_task_t)inBuf, (p_port_task_t)outBuf);
+            
+            opInfo = outBufferSize;
+            status = STATUS_SUCCESS;
+            TraceEvents(TRACE_LEVEL_VERBOSE, TRACE_IOCTL, "%!FUNC! <--- IOCTL_DO_TASK\n");
+            break;
+        }
+
         default: {
             opInfo = 0;
             status = STATUS_UNSUCCESSFUL;

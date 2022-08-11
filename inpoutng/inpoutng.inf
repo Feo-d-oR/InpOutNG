@@ -8,7 +8,7 @@ Class = System
 ClassGuid = {4d36e97d-e325-11ce-bfc1-08002be10318}
 Provider = %ManufacturerName%
 CatalogFile = inpoutng.cat
-DriverVer = 2.5.1
+DriverVer = 2.6.0
 PnpLockdown = 1
 
 [DestinationDirs]
@@ -169,12 +169,10 @@ KmdfService =  InpOutNg, InpOutNg_wdfsect
 KmdfLibraryVersion = $KMDFVERSION$
 
 [Strings]
-SPSVCINST_ASSOCSERVICE= 0x00000002
+; Localizable strings;
 ManufacturerName = "Gvozdev A. Feodor"
-ClassName = "System"
-DiskName = "InpOutNg Installation Disk"
-InpOutNg.DeviceDesc = "Чтение/запись портов ISA/PCI InpOutNg"
-InpOutNg.SVCDESC = "Служба InpOutNg"
+InpOutNg.DeviceDesc = "Direct ISA/PCI port access driver (InpOutNg)"
+InpOutNg.SVCDESC = "InpOutNg service"
 IRQ0 = "Use IRQ 0"
 IRQ1 = "Use IRQ 1"
 IRQ2 = "Use IRQ 2"
@@ -191,3 +189,35 @@ IRQ12 = "Use IRQ 12"
 IRQ13 = "Use IRQ 13"
 IRQ14 = "Use IRQ 14"
 IRQ15 = "Use IRQ 15"
+
+; Non-localizable strigs
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ClassName = "System"
+DiskName = "InpOutNg Installation Disk"
+
+[Strings.0419]
+; Localizable strings;
+ManufacturerName = "Гвоздев Фёдор"
+InpOutNg.DeviceDesc = "Драйвер прямого доступа к портам ISA/PCI (InpOutNg)"
+InpOutNg.SVCDESC = "Служба InpOutNg"
+IRQ0 = "Использовать IRQ 0"
+IRQ1 = "Использовать IRQ 1"
+IRQ2 = "Использовать IRQ 2"
+IRQ3 = "Использовать IRQ 3"
+IRQ4 = "Использовать IRQ 4"
+IRQ5 = "Использовать IRQ 5"
+IRQ6 = "Использовать IRQ 6"
+IRQ7 = "Использовать IRQ 7"
+IRQ8 = "Использовать IRQ 8"
+IRQ9 = "Использовать IRQ 9"
+IRQ10 = "Использовать IRQ 10"
+IRQ11 = "Использовать IRQ 11"
+IRQ12 = "Использовать IRQ 12"
+IRQ13 = "Использовать IRQ 13"
+IRQ14 = "Использовать IRQ 14"
+IRQ15 = "Использовать IRQ 15"
+
+; Non-localizable strigs
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ClassName = "System"
+DiskName = "InpOutNg Installation Disk"

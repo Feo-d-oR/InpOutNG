@@ -201,7 +201,7 @@ Return Value:
     devContext = inpOutNgGetContext(device);
 
     devContext->Device          = device;
-    devContext->inpOutNgVersion = INPOUTNG_VERSION(2, 5, 1);
+    devContext->inpOutNgVersion = INPOUTNG_VERSION(2, 6, 0);
     
     devContext->irqClearSize = 0;
     RtlZeroBytes(&devContext->irqClearSeq, sizeof(devContext->irqClearSeq));
