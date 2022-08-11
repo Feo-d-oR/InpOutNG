@@ -83,9 +83,6 @@ Return Value:
                              WDF_NO_HANDLE
                              );
 
-    if (!NT_SUCCESS(status))
-        return status;
-
     if (!NT_SUCCESS(status)) {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_DRIVER, "WdfDriverCreate failed %!STATUS!", status);
         WPP_CLEANUP(DriverObject);
